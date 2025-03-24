@@ -160,6 +160,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       ? "bg-primary/20 text-primary"
                       : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   )}
+                  onClick={() => setSidebarOpen(false)}
                 >
                   <item.icon className="h-5 w-5" />
                   {item.label}
@@ -200,17 +201,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="flex items-center justify-between h-full px-4">
             <div className="flex items-center">
               {isMobile && (
-                <SheetTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => setSidebarOpen(true)}
-                    className="mr-2"
-                    aria-label="Open menu"
-                  >
-                    <Menu className="h-5 w-5" />
-                  </Button>
-                </SheetTrigger>
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setSidebarOpen(true)}
+                      className="mr-2"
+                      aria-label="Open menu"
+                    >
+                      <Menu className="h-5 w-5" />
+                    </Button>
+                  </SheetTrigger>
+                </Sheet>
               )}
               <div className="md:hidden">
                 <h1 className="text-xl font-bold gradient-text">MindBuild</h1>
