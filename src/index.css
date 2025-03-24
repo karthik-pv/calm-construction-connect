@@ -1,4 +1,8 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -14,7 +18,7 @@
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
     
-    --primary: 267 75% 60%;
+    --primary: 258 90% 66%;
     --primary-foreground: 0 0% 98%;
     
     --secondary: 240 3.7% 15.9%;
@@ -23,7 +27,7 @@
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
     
-    --accent: 267 60% 65%;
+    --accent: 258 60% 65%;
     --accent-foreground: 0 0% 98%;
     
     --destructive: 0 62.8% 30.6%;
@@ -31,9 +35,9 @@
     
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 267 75% 60%;
+    --ring: 258 90% 66%;
     
-    --radius: 0.75rem;
+    --radius: 0.85rem;
   }
 
   .light {
@@ -46,7 +50,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
     
-    --primary: 267 70% 50%;
+    --primary: 258 90% 66%;
     --primary-foreground: 0 0% 98%;
     
     --secondary: 240 4.8% 95.9%;
@@ -55,7 +59,7 @@
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
     
-    --accent: 267 65% 85%;
+    --accent: 258 65% 85%;
     --accent-foreground: 240 5.9% 10%;
     
     --destructive: 0 84.2% 60.2%;
@@ -63,7 +67,7 @@
     
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 267 70% 50%;
+    --ring: 258 90% 66%;
   }
 }
 
@@ -79,10 +83,12 @@
   body {
     @apply bg-background text-foreground font-sans;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
+    letter-spacing: -0.01em;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-heading font-bold tracking-tight;
+    @apply font-heading font-medium tracking-tight;
+    letter-spacing: -0.02em;
   }
 
   h1 {
@@ -108,26 +114,51 @@
   h6 {
     @apply text-base md:text-lg;
   }
+  
+  p {
+    @apply leading-relaxed;
+  }
+  
+  button, a {
+    @apply transition-all duration-200;
+  }
+  
+  strong {
+    @apply font-medium;
+  }
 }
 
 @layer utilities {
   .glass {
-    @apply bg-black/40 backdrop-blur-md border border-white/10;
+    @apply bg-black/30 backdrop-blur-md border border-white/10;
   }
   
   .glass-card {
-    @apply bg-black/60 backdrop-blur-lg border border-white/10 shadow-xl;
+    @apply bg-black/50 backdrop-blur-lg border border-white/10 shadow-lg;
   }
 
   .gradient-text {
-    @apply bg-gradient-to-r from-purple-400 to-indigo-300 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-indigo-400 to-purple-300 bg-clip-text text-transparent;
+  }
+  
+  .gradient-heading {
+    @apply bg-gradient-to-r from-indigo-300 via-purple-200 to-indigo-300 bg-clip-text text-transparent;
   }
 
   .text-balance {
     text-wrap: balance;
   }
+  
+  .elegant-shadow {
+    @apply shadow-[0_8px_30px_rgb(0,0,0,0.12)];
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+  }
 }
 
+/* Reset the previous font setup */
 @font-face {
   font-family: 'Satoshi';
   src: url('https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,301,701,300,501,401,901,400&display=swap') format('woff2');
@@ -137,7 +168,7 @@
 }
 
 @import url('https://rsms.me/inter/inter.css');
-html { font-family: 'Inter', sans-serif; }
+html { font-family: 'Outfit', 'Inter var', sans-serif; }
 @supports (font-variation-settings: normal) {
-  html { font-family: 'Inter var', sans-serif; }
+  html { font-family: 'Outfit', 'Inter var', sans-serif; }
 }

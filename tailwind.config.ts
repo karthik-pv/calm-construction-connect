@@ -128,8 +128,9 @@ export default {
         'float': 'float 3s ease-in-out infinite'
       },
       fontFamily: {
-        sans: ['Inter var', 'sans-serif'],
-        heading: ['Satoshi', 'sans-serif']
+        sans: ['Outfit', 'Inter var', 'system-ui', 'sans-serif'],
+        heading: ['Playfair Display', 'serif'],
+        mono: ['JetBrains Mono', 'monospace']
       }
     }
   },

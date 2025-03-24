@@ -140,7 +140,7 @@ export default function TherapistProfile() {
     
     try {
       // In a real app, you would upload the profile image to storage and get a URL
-      const profileData = {
+      const profileUpdateData = {
         name: profileData.name,
         phoneNumber: profileData.phoneNumber,
         companyName: profileData.companyName,
@@ -150,7 +150,7 @@ export default function TherapistProfile() {
         expertise: profileData.expertise,
       };
       
-      await updateProfile(profileData);
+      await updateProfile(profileUpdateData);
       toast.success("Profile updated successfully");
     } catch (error) {
       toast.error("Failed to update profile. Please try again.");
@@ -219,24 +219,24 @@ export default function TherapistProfile() {
               <form onSubmit={handleProfileSubmit}>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Avatar Section */}
-                  <Card className="bg-black/40 border-border backdrop-blur-md lg:col-span-1">
+                  <Card className="glass-card lg:col-span-1">
                     <CardHeader>
-                      <CardTitle>Profile Picture</CardTitle>
+                      <CardTitle className="gradient-heading">Profile Picture</CardTitle>
                       <CardDescription>
                         Upload a professional photo to enhance patient trust
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col items-center justify-center">
                       <div className="relative mb-4">
-                        <Avatar className="h-32 w-32">
+                        <Avatar className="h-32 w-32 border-2 border-primary/20 shadow-lg">
                           <AvatarImage src={profileImagePreview || undefined} />
-                          <AvatarFallback className="text-4xl">
+                          <AvatarFallback className="text-4xl font-heading">
                             {profileData.name.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
                         <label 
                           htmlFor="profile-image"
-                          className="absolute bottom-0 right-0 p-1 rounded-full bg-primary hover:bg-primary/80 text-white cursor-pointer"
+                          className="absolute bottom-0 right-0 p-1.5 rounded-full bg-primary hover:bg-primary/80 text-white cursor-pointer shadow-md hover:shadow-lg transition-all duration-200"
                         >
                           <Camera className="h-5 w-5" />
                         </label>
@@ -255,9 +255,9 @@ export default function TherapistProfile() {
                   </Card>
                   
                   {/* Personal Info Section */}
-                  <Card className="bg-black/40 border-border backdrop-blur-md lg:col-span-2">
+                  <Card className="glass-card lg:col-span-2">
                     <CardHeader>
-                      <CardTitle>Personal Information</CardTitle>
+                      <CardTitle className="gradient-heading">Personal Information</CardTitle>
                       <CardDescription>
                         Update your personal and professional details
                       </CardDescription>
@@ -272,6 +272,7 @@ export default function TherapistProfile() {
                             value={profileData.name}
                             onChange={handleInputChange}
                             placeholder="Your full name"
+                            className="border-white/10 bg-black/20"
                           />
                         </div>
                         <div className="space-y-2">
@@ -282,6 +283,7 @@ export default function TherapistProfile() {
                             value={profileData.title}
                             onChange={handleInputChange}
                             placeholder="e.g. Clinical Psychologist"
+                            className="border-white/10 bg-black/20"
                           />
                         </div>
                         <div className="space-y-2">
@@ -293,6 +295,7 @@ export default function TherapistProfile() {
                             onChange={handleInputChange}
                             placeholder="Your email"
                             disabled
+                            className="border-white/10 bg-black/20"
                           />
                         </div>
                         <div className="space-y-2">
@@ -303,6 +306,7 @@ export default function TherapistProfile() {
                             value={profileData.phoneNumber}
                             onChange={handleInputChange}
                             placeholder="Your phone number"
+                            className="border-white/10 bg-black/20"
                           />
                         </div>
                         <div className="space-y-2">
@@ -313,6 +317,7 @@ export default function TherapistProfile() {
                             value={profileData.companyName}
                             onChange={handleInputChange}
                             placeholder="Your practice name"
+                            className="border-white/10 bg-black/20"
                           />
                         </div>
                         <div className="space-y-2">
@@ -325,6 +330,7 @@ export default function TherapistProfile() {
                             value={profileData.experience}
                             onChange={handleInputChange}
                             placeholder="Years of practice"
+                            className="border-white/10 bg-black/20"
                           />
                         </div>
                       </div>
@@ -338,6 +344,7 @@ export default function TherapistProfile() {
                           onChange={handleInputChange}
                           placeholder="Describe your approach and experience"
                           rows={4}
+                          className="border-white/10 bg-black/20 resize-none"
                         />
                         <p className="text-xs text-muted-foreground">
                           This will be visible to potential patients. Highlight your expertise in construction worker mental health.
@@ -352,11 +359,13 @@ export default function TherapistProfile() {
                             onChange={(e) => setNewExpertise(e.target.value)}
                             onKeyDown={handleKeyPress}
                             placeholder="Add expertise (e.g. Anxiety)"
+                            className="border-white/10 bg-black/20"
                           />
                           <Button 
                             type="button" 
                             onClick={handleAddExpertise}
                             disabled={!newExpertise.trim()}
+                            variant="elegant"
                           >
                             Add
                           </Button>
@@ -365,7 +374,7 @@ export default function TherapistProfile() {
                         {profileData.expertise.length > 0 && (
                           <div className="flex flex-wrap gap-2 mt-2">
                             {profileData.expertise.map(item => (
-                              <Badge key={item} variant="secondary">
+                              <Badge key={item} variant="secondary" className="bg-white/5 text-white border-white/10">
                                 {item}
                                 <button
                                   type="button"
@@ -389,6 +398,7 @@ export default function TherapistProfile() {
                             value={profileData.appointmentFee}
                             onChange={handleInputChange}
                             placeholder="e.g. £90"
+                            className="border-white/10 bg-black/20"
                           />
                         </div>
                         <div className="space-y-2">
@@ -402,13 +412,14 @@ export default function TherapistProfile() {
                             value={profileData.sessionDuration}
                             onChange={handleInputChange}
                             placeholder="e.g. 50"
+                            className="border-white/10 bg-black/20"
                           />
                         </div>
                       </div>
                     </CardContent>
                     
                     <CardFooter className="flex justify-end">
-                      <Button type="submit" disabled={submitting}>
+                      <Button type="submit" disabled={submitting} variant="elegant">
                         {submitting ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -431,9 +442,9 @@ export default function TherapistProfile() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <Card className="bg-black/40 border-border backdrop-blur-md">
+              <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle>Credentials & Qualifications</CardTitle>
+                  <CardTitle className="gradient-heading">Credentials & Qualifications</CardTitle>
                   <CardDescription>
                     Showcase your professional qualifications to build patient trust
                   </CardDescription>
@@ -449,6 +460,7 @@ export default function TherapistProfile() {
                         onChange={handleInputChange}
                         placeholder="List your degrees and educational background"
                         rows={3}
+                        className="border-white/10 bg-black/20 resize-none"
                       />
                     </div>
                     
@@ -461,6 +473,7 @@ export default function TherapistProfile() {
                         onChange={handleInputChange}
                         placeholder="List your professional certifications and licenses"
                         rows={3}
+                        className="border-white/10 bg-black/20 resize-none"
                       />
                     </div>
                     
@@ -472,6 +485,7 @@ export default function TherapistProfile() {
                         value={profileData.languages}
                         onChange={handleInputChange}
                         placeholder="e.g. English, Spanish"
+                        className="border-white/10 bg-black/20"
                       />
                     </div>
                     
@@ -480,7 +494,7 @@ export default function TherapistProfile() {
                       <div className="flex items-center gap-2">
                         <label 
                           htmlFor="credentials"
-                          className="cursor-pointer flex items-center gap-2 border border-border rounded-md px-4 py-2 hover:bg-secondary/20 transition-colors duration-200"
+                          className="cursor-pointer flex items-center gap-2 border border-white/10 rounded-md px-4 py-2 hover:bg-white/5 transition-colors duration-200"
                         >
                           <Upload className="h-5 w-5" />
                           <span>Upload Files</span>
@@ -505,7 +519,7 @@ export default function TherapistProfile() {
                             {certificateFiles.map((file, index) => (
                               <div 
                                 key={index} 
-                                className="flex items-center justify-between p-2 border border-border rounded-md bg-black/20"
+                                className="flex items-center justify-between p-2 border border-white/10 rounded-md bg-black/20"
                               >
                                 <div className="flex items-center gap-2">
                                   <CheckCircle className="h-4 w-4 text-primary" />
@@ -532,6 +546,7 @@ export default function TherapistProfile() {
                 <CardFooter className="flex justify-end">
                   <Button
                     onClick={() => toast.success("Credentials updated successfully")}
+                    variant="elegant"
                   >
                     Save Credentials
                   </Button>
@@ -546,9 +561,9 @@ export default function TherapistProfile() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <Card className="bg-black/40 border-border backdrop-blur-md">
+              <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle>Availability Schedule</CardTitle>
+                  <CardTitle className="gradient-heading">Availability Schedule</CardTitle>
                   <CardDescription>
                     Set your working hours for patient appointments
                   </CardDescription>
@@ -558,7 +573,7 @@ export default function TherapistProfile() {
                     {Object.entries(availability).map(([day, { available, start, end }]) => (
                       <div key={day} className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <Label htmlFor={`${day}-available`} className="capitalize">
+                          <Label htmlFor={`${day}-available`} className="capitalize font-medium">
                             {day}
                           </Label>
                           <Switch
@@ -581,6 +596,7 @@ export default function TherapistProfile() {
                                 onChange={(e) => 
                                   handleAvailabilityChange(day, "start", e.target.value)
                                 }
+                                className="border-white/10 bg-black/20"
                               />
                             </div>
                             <div className="space-y-2">
@@ -592,12 +608,13 @@ export default function TherapistProfile() {
                                 onChange={(e) => 
                                   handleAvailabilityChange(day, "end", e.target.value)
                                 }
+                                className="border-white/10 bg-black/20"
                               />
                             </div>
                           </div>
                         )}
                         
-                        {day !== "sunday" && <Separator className="mt-4" />}
+                        {day !== "sunday" && <Separator className="mt-4 bg-white/10" />}
                       </div>
                     ))}
                   </div>
@@ -605,6 +622,7 @@ export default function TherapistProfile() {
                 <CardFooter className="flex justify-end">
                   <Button
                     onClick={() => toast.success("Availability updated successfully")}
+                    variant="elegant"
                   >
                     Save Availability
                   </Button>
@@ -620,9 +638,9 @@ export default function TherapistProfile() {
               transition={{ duration: 0.5 }}
               className="grid grid-cols-1 lg:grid-cols-2 gap-6"
             >
-              <Card className="bg-black/40 border-border backdrop-blur-md">
+              <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle>Change Password</CardTitle>
+                  <CardTitle className="gradient-heading">Change Password</CardTitle>
                   <CardDescription>
                     Update your password to keep your account secure
                   </CardDescription>
@@ -639,6 +657,7 @@ export default function TherapistProfile() {
                           value={password.current}
                           onChange={handlePasswordChange}
                           placeholder="Your current password"
+                          className="border-white/10 bg-black/20"
                         />
                         <Button
                           type="button"
@@ -662,6 +681,7 @@ export default function TherapistProfile() {
                           value={password.new}
                           onChange={handlePasswordChange}
                           placeholder="New password"
+                          className="border-white/10 bg-black/20"
                         />
                       </div>
                     </div>
@@ -676,6 +696,7 @@ export default function TherapistProfile() {
                           value={password.confirm}
                           onChange={handlePasswordChange}
                           placeholder="Confirm new password"
+                          className="border-white/10 bg-black/20"
                         />
                       </div>
                     </div>
@@ -684,6 +705,7 @@ export default function TherapistProfile() {
                       <Button 
                         type="submit" 
                         disabled={passwordSubmitting || !password.current || !password.new || !password.confirm}
+                        variant="elegant"
                       >
                         {passwordSubmitting ? (
                           <>
@@ -699,9 +721,9 @@ export default function TherapistProfile() {
                 </CardContent>
               </Card>
               
-              <Card className="bg-black/40 border-border backdrop-blur-md">
+              <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle>Notification Preferences</CardTitle>
+                  <CardTitle className="gradient-heading">Notification Preferences</CardTitle>
                   <CardDescription>
                     Manage how you receive notifications
                   </CardDescription>
@@ -710,7 +732,7 @@ export default function TherapistProfile() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <Label htmlFor="email-notifications">Email Notifications</Label>
+                        <Label htmlFor="email-notifications" className="font-medium">Email Notifications</Label>
                         <p className="text-sm text-muted-foreground">
                           Receive notifications via email
                         </p>
@@ -724,11 +746,11 @@ export default function TherapistProfile() {
                       />
                     </div>
                     
-                    <Separator />
+                    <Separator className="bg-white/10" />
                     
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <Label htmlFor="sms-notifications">SMS Notifications</Label>
+                        <Label htmlFor="sms-notifications" className="font-medium">SMS Notifications</Label>
                         <p className="text-sm text-muted-foreground">
                           Receive notifications via text message
                         </p>
@@ -742,11 +764,11 @@ export default function TherapistProfile() {
                       />
                     </div>
                     
-                    <Separator />
+                    <Separator className="bg-white/10" />
                     
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <Label htmlFor="new-patients">New Patient Alerts</Label>
+                        <Label htmlFor="new-patients" className="font-medium">New Patient Alerts</Label>
                         <p className="text-sm text-muted-foreground">
                           Get notified when new patients request appointments
                         </p>
@@ -760,11 +782,11 @@ export default function TherapistProfile() {
                       />
                     </div>
                     
-                    <Separator />
+                    <Separator className="bg-white/10" />
                     
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <Label htmlFor="appointment-reminders">Appointment Reminders</Label>
+                        <Label htmlFor="appointment-reminders" className="font-medium">Appointment Reminders</Label>
                         <p className="text-sm text-muted-foreground">
                           Receive reminders about upcoming appointments
                         </p>
@@ -782,6 +804,7 @@ export default function TherapistProfile() {
                 <CardFooter className="flex justify-end">
                   <Button
                     onClick={() => toast.success("Notification preferences updated!")}
+                    variant="elegant"
                   >
                     Save Preferences
                   </Button>
