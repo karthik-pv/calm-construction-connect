@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -15,6 +14,7 @@ export interface User {
   phoneNumber?: string;
   experience?: number;
   expertise?: string[];
+  bio?: string;
 }
 
 interface AuthContextType {

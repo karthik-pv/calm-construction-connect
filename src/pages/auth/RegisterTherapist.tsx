@@ -312,10 +312,11 @@ export default function RegisterTherapist() {
                   <Command>
                     <CommandInput placeholder="Search expertise..." />
                     <CommandEmpty>No expertise found.</CommandEmpty>
-                    <CommandGroup>
+                    <CommandGroup className="max-h-[200px] overflow-auto">
                       {expertiseOptions.map((option) => (
                         <CommandItem
                           key={option.value}
+                          value={option.value}
                           onSelect={() => {
                             const updatedExpertise = selectedExpertise.includes(option.label)
                               ? selectedExpertise.filter((item) => item !== option.label)
