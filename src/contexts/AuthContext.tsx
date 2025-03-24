@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -52,6 +53,31 @@ const demoUsers = [
     phoneNumber: '+44 7987 654321',
     experience: 12,
     expertise: ['Anxiety', 'Depression', 'Work Stress'],
+    bio: 'Clinical psychologist with over a decade of experience helping construction workers manage stress and anxiety.',
+  },
+  // Adding our dummy users for easy login
+  {
+    id: '3',
+    email: 'dummy@gmail.com',
+    password: 'password',
+    role: 'patient',
+    name: 'Demo Patient',
+    profilePic: 'https://i.pravatar.cc/150?img=3',
+    companyName: 'Demo Construction Ltd',
+    phoneNumber: '+44 7111 222333',
+  },
+  {
+    id: '4',
+    email: 'dummy@gmail.com',
+    password: 'password',
+    role: 'therapist',
+    name: 'Demo Therapist',
+    profilePic: 'https://i.pravatar.cc/150?img=8',
+    companyName: 'Demo Therapy Clinic',
+    phoneNumber: '+44 7444 555666',
+    experience: 8,
+    expertise: ['Anxiety', 'Depression', 'Trauma', 'Stress Management'],
+    bio: 'Licensed therapist specializing in helping construction workers with job-related stress and mental health challenges.',
   }
 ];
 

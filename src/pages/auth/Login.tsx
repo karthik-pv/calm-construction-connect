@@ -12,7 +12,8 @@ import { AuthLayout } from "@/components/layouts/AuthLayout";
 import { useAuth, UserRole } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -30,8 +31,8 @@ export default function Login() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: "dummy@gmail.com",
+      password: "password",
       role: "patient"
     },
   });
@@ -60,6 +61,19 @@ export default function Login() {
       title="Log in to your account"
       description="Enter your credentials to access the platform"
     >
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Alert className="mb-6 bg-primary/10 text-primary border-primary/20">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Use <strong>dummy@gmail.com</strong> with password <strong>password</strong> to log in as either a patient or therapist.
+          </AlertDescription>
+        </Alert>
+      </motion.div>
+
       <Tabs defaultValue="credentials" className="w-full">
         <TabsList className="grid w-full grid-cols-1 mb-4">
           <TabsTrigger value="credentials">Login</TabsTrigger>
