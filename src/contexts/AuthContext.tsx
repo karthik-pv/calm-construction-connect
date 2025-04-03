@@ -31,6 +31,14 @@ interface AuthContextType {
   isAuthenticated: boolean;
 }
 
+// Interface for stored credentials
+interface StoredCredentials {
+  email: string;
+  password: string;
+}
+
+const AUTH_STORAGE_KEY = 'calm_construction_auth_creds';
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -40,60 +48,92 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Function to securely store credentials
+  const storeCredentials = (email: string, password: string) => {
+    try {
+      const credentials: StoredCredentials = { email, password };
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(credentials));
+    } catch (error) {
+      console.error('Error storing credentials:', error);
+    }
+  };
+
+  // Function to retrieve stored credentials
+  const getStoredCredentials = (): StoredCredentials | null => {
+    try {
+      const storedData = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (!storedData) return null;
+      return JSON.parse(storedData) as StoredCredentials;
+    } catch (error) {
+      console.error('Error retrieving credentials:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     const initializeAuth = async () => {
-      // Page refresh detection
-      // Use sessionStorage to determine if this is a page refresh
-      const isPageRefresh = sessionStorage.getItem('app_session_active');
-      
-      if (isPageRefresh) {
-        console.log("Page refresh detected - performing automatic logout");
-        // Clear any existing auth state
-        setSession(null);
-        setUser(null);
-        setProfile(null);
-        setLoading(false);
+      try {
+        // First check if we have a session
+        const { data: { session } } = await supabase.auth.getSession();
         
-        // Redirect to force-logout page
-        window.location.href = '/force-logout.html';
-        return; // Stop further execution
-      }
-      
-      // Set flag in sessionStorage to detect refreshes
-      sessionStorage.setItem('app_session_active', 'true');
-      
-      // Normal auth initialization continues below
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    };
-
-    initializeAuth();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session: Session | null) => {
-        console.log('Auth event:', event, session);
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          setLoading(true);
+        if (session) {
+          // We have a valid session
+          console.log('Valid session found');
+          setSession(session);
+          setUser(session.user);
           await fetchProfile(session.user.id);
         } else {
-          setProfile(null);
-          setLoading(false);
+          // No valid session, try to login with stored credentials
+          console.log('No valid session, checking for stored credentials');
+          const credentials = getStoredCredentials();
+          
+          if (credentials) {
+            console.log('Found stored credentials, attempting automatic login');
+            try {
+              const { error, data } = await supabase.auth.signInWithPassword({
+                email: credentials.email,
+                password: credentials.password
+              });
+              
+              if (error) {
+                console.error('Auto-login error:', error.message);
+                // Don't show error toast to user on auto-login failure
+                setLoading(false);
+              } else if (data.user) {
+                console.log('Auto-login successful');
+                // Don't show success toast on auto-login
+                setSession(data.session);
+                setUser(data.user);
+                await fetchProfile(data.user.id);
+              }
+            } catch (error) {
+              console.error('Auto-login exception:', error);
+              setLoading(false);
+            }
+          } else {
+            console.log('No stored credentials found');
+            setLoading(false);
+          }
         }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        setLoading(false);
       }
-    );
-
-    return () => {
-      authListener?.subscription.unsubscribe();
     };
+  
+    // Set a timeout to ensure loading state is reset even if auth fails
+  const timeoutId = setTimeout(() => {
+    if (loading) {
+      console.log('Auth initialization timeout - forcing loading to false');
+      setLoading(false);
+    }
+  }, 5000); // 5 second timeout as a safety measure
+
+  initializeAuth();
+
+  return () => {
+    clearTimeout(timeoutId);
+  };
   }, []);
 
   const fetchProfile = async (userId: string) => {
@@ -129,7 +169,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         toast.error(error.message || 'Invalid email or password');
         setLoading(false);
       } else if (data.user) {
+        // Store credentials for auto-login on refresh
+        storeCredentials(email, password);
         toast.success("Login successful! Redirecting...");
+        
+        // Fetch user profile to determine where to navigate
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('user_role')
+          .eq('id', data.user.id)
+          .single();
+        
+        // Navigate to the appropriate dashboard based on user role
+        if (profileData) {
+          const dashboardPath = profileData.user_role === 'patient' ? '/patient' : '/therapist';
+          // Navigate first
+          navigate(dashboardPath);
+          // Then trigger a page refresh after a short delay to ensure navigation completes
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
+        } else {
+          // If profile not found, navigate to a default route
+          navigate('/patient');
+          // Then trigger a page refresh
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
+        }
       }
     } catch (error) {
       console.error('Login exception:', error);
@@ -172,6 +239,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     setLoading(true);
     try {
+      // Remove stored credentials on logout
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Logout error:', error.message);
