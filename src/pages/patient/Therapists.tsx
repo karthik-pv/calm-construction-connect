@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
@@ -9,84 +8,55 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, MessageCircle, Star } from "lucide-react";
+import { Calendar, MessageCircle, Star, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useTherapists } from "@/hooks/useTherapists";
+import { UserProfile } from "@/contexts/AuthContext";
 
-// Demo therapist data
-const demoTherapists = [
-  {
-    id: "1",
-    name: "Dr. Sarah Thompson",
-    profilePic: "https://i.pravatar.cc/150?img=5",
-    title: "Clinical Psychologist",
-    experience: 12,
-    specialties: ["Anxiety", "Depression", "Workplace Stress"],
-    rating: 4.8,
-    reviewCount: 124,
-    availability: "Available this week",
-    bio: "Specializing in workplace mental health with particular focus on high-stress industries like construction. My approach combines cognitive-behavioral techniques with practical stress management strategies.",
-    background: ["Ph.D. in Clinical Psychology", "Licensed in UK", "Construction Industry Mental Health Specialist"]
-  },
-  {
-    id: "2",
-    name: "Dr. Michael Reynolds",
-    profilePic: "https://i.pravatar.cc/150?img=12",
-    title: "Mental Health Counselor",
-    experience: 8,
-    specialties: ["PTSD", "Depression", "Anxiety"],
-    rating: 4.5,
-    reviewCount: 97,
-    availability: "Next available: Monday",
-    bio: "I work with construction professionals dealing with stress, anxiety, and traumatic experiences from the workplace. My practice focuses on building resilience and practical coping strategies.",
-    background: ["Masters in Counseling", "Certified Trauma Specialist", "Former Construction Worker"]
-  },
-  {
-    id: "3",
-    name: "Dr. Emily Chen",
-    profilePic: "https://i.pravatar.cc/150?img=9",
-    title: "Trauma Specialist",
-    experience: 15,
-    specialties: ["Trauma", "PTSD", "Anxiety", "Stress Management"],
-    rating: 4.9,
-    reviewCount: 156,
-    availability: "Available this week",
-    bio: "With 15 years of experience in trauma-informed care, I help construction workers process and heal from workplace incidents and chronic stress. My approach is practical and solutions-focused.",
-    background: ["Ph.D. in Psychology", "Certified in EMDR Therapy", "Workplace Trauma Specialist"]
-  },
-  {
-    id: "4",
-    name: "Dr. James Wilson",
-    profilePic: "https://i.pravatar.cc/150?img=17",
-    title: "Occupational Psychologist",
-    experience: 10,
-    specialties: ["Work-Life Balance", "Burnout", "Stress Management"],
-    rating: 4.7,
-    reviewCount: 85,
-    availability: "Limited availability",
-    bio: "As an occupational psychologist, I focus on the intersection of work and wellbeing. I help construction workers manage workplace stressors and develop sustainable work practices.",
-    background: ["Doctorate in Occupational Psychology", "Certified in CBT", "Construction Industry Consultant"]
-  },
-  {
-    id: "5",
-    name: "Dr. Olivia Martinez",
-    profilePic: "https://i.pravatar.cc/150?img=34",
-    title: "Clinical Psychologist",
-    experience: 7,
-    specialties: ["Anxiety", "Depression", "Sleep Problems"],
-    rating: 4.6,
-    reviewCount: 64,
-    availability: "Available next week",
-    bio: "I specialize in helping construction workers manage anxiety, depression, and sleep issues related to shift work and high-pressure environments. My approach combines evidence-based techniques with practical solutions.",
-    background: ["Ph.D. in Clinical Psychology", "Sleep Specialist", "Research in Workplace Mental Health"]
-  }
-];
+// Common specializations to use as a fallback when none provided
+const COMMON_SPECIALIZATIONS = ["Anxiety", "Depression", "Stress", "Trauma", "PTSD", "Work-Life Balance"];
 
 export default function PatientTherapists() {
-  const [therapists, setTherapists] = useState(demoTherapists);
+  const { data: therapistData, isLoading, error } = useTherapists();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
+  
+  // Process the therapist data to handle missing fields and standardize format
+  const processTherapistData = (therapists: UserProfile[] | undefined) => {
+    if (!therapists || therapists.length === 0) return [];
+    
+    return therapists.map(therapist => {
+      // Parse specialization string to array if it exists, or use default
+      let specialties: string[] = [];
+      if (therapist.specialization) {
+        try {
+          // Try to parse if it's stored as JSON string
+          specialties = typeof therapist.specialization === 'string' && therapist.specialization.includes(',') 
+            ? therapist.specialization.split(',').map(s => s.trim())
+            : [therapist.specialization.trim()];
+        } catch {
+          specialties = [therapist.specialization];
+        }
+      } else {
+        // Assign random specialties as fallback
+        specialties = COMMON_SPECIALIZATIONS.slice(0, 2 + Math.floor(Math.random() * 3));
+      }
+      
+      return {
+        id: therapist.id,
+        name: therapist.full_name || 'Anonymous Therapist',
+        profilePic: therapist.avatar_url || '', 
+        specialties,
+        experience: therapist.experience_years || 0,
+        bio: 'Professional therapist specialized in mental health support for construction workers.',
+        status: therapist.status || 'active'
+      };
+    });
+  };
+  
+  const therapists = processTherapistData(therapistData);
   
   // Get unique specialties for filter
   const allSpecialties = Array.from(
@@ -101,13 +71,12 @@ export default function PatientTherapists() {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       const nameMatch = therapist.name.toLowerCase().includes(searchLower);
-      const titleMatch = therapist.title.toLowerCase().includes(searchLower);
       const specialtiesMatch = therapist.specialties.some(s => 
         s.toLowerCase().includes(searchLower)
       );
       const bioMatch = therapist.bio.toLowerCase().includes(searchLower);
       
-      if (!(nameMatch || titleMatch || specialtiesMatch || bioMatch)) {
+      if (!(nameMatch || specialtiesMatch || bioMatch)) {
         return false;
       }
     }
@@ -118,7 +87,7 @@ export default function PatientTherapists() {
     }
     
     // Filter by tab
-    if (activeTab === "available" && !therapist.availability.includes("Available")) {
+    if (activeTab === "available" && therapist.status !== 'active') {
       return false;
     }
     
@@ -144,6 +113,48 @@ export default function PatientTherapists() {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 }
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 h-[calc(100vh-3.5rem)] flex flex-col items-center justify-center">
+          <div className="mindful-loader mb-4"></div>
+          <p className="text-foreground">Loading therapists...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 h-[calc(100vh-3.5rem)] flex flex-col items-center justify-center">
+          <div className="bg-destructive/20 p-4 rounded-lg mb-4 flex items-center">
+            <Info className="h-6 w-6 text-destructive mr-2" />
+            <p className="text-destructive">Failed to load therapists. Please try again later.</p>
+          </div>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Show empty state if no therapists found
+  if (therapists.length === 0) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 space-y-6">
+          <PageTitle title="Find a Therapist" subtitle="Connect with mental health professionals specializing in construction worker well-being" />
+          <div className="flex flex-col items-center justify-center p-8 bg-black/30 rounded-lg">
+            <p className="mb-4 text-muted-foreground">No therapists are currently available.</p>
+            <Button onClick={() => window.location.reload()}>Refresh</Button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -204,13 +215,13 @@ export default function PatientTherapists() {
                       </Avatar>
                       <div className="space-y-1">
                         <CardTitle className="text-lg">{therapist.name}</CardTitle>
-                        <p className="text-sm text-muted-foreground">{therapist.title}</p>
-                        <div className="flex items-center text-sm">
-                          <Star className="h-4 w-4 text-yellow-500 mr-1 fill-yellow-500" />
-                          <span>{therapist.rating}</span>
-                          <span className="text-muted-foreground ml-1">({therapist.reviewCount} reviews)</span>
-                        </div>
-                        <p className="text-xs text-primary">{therapist.availability}</p>
+                        <p className="text-sm text-muted-foreground">Mental Health Professional</p>
+                        {therapist.experience > 0 && (
+                          <p className="text-sm">{therapist.experience} years experience</p>
+                        )}
+                        <p className="text-xs text-primary">
+                          {therapist.status === 'active' ? 'Available now' : 'Currently unavailable'}
+                        </p>
                       </div>
                     </div>
                   </CardHeader>
@@ -226,18 +237,6 @@ export default function PatientTherapists() {
                       </div>
                       
                       <p className="text-sm">{therapist.bio}</p>
-                      
-                      <div>
-                        <p className="text-sm font-medium mb-1">Experience & Credentials:</p>
-                        <ul className="text-sm text-muted-foreground space-y-1">
-                          {therapist.background.map((item, i) => (
-                            <li key={i} className="flex items-start">
-                              <span className="mr-2">•</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
                     </div>
                   </CardContent>
                   
@@ -248,20 +247,13 @@ export default function PatientTherapists() {
                         Message
                       </Button>
                     </Link>
-                    <Button variant="outline">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Schedule
-                    </Button>
                   </CardFooter>
                 </Card>
               </motion.div>
             ))
           ) : (
-            <div className="col-span-full text-center py-12 border border-dashed border-muted rounded-lg">
-              <h3 className="text-xl font-medium mb-2">No therapists found</h3>
-              <p className="text-muted-foreground">
-                Try adjusting your search criteria or filters
-              </p>
+            <div className="col-span-full text-center p-8">
+              <p className="text-muted-foreground">No therapists found matching your filters.</p>
             </div>
           )}
         </motion.div>

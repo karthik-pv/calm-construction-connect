@@ -1,4 +1,3 @@
-
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
 export default function PatientDashboard() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
   const container = {
     hidden: { opacity: 0 },
@@ -30,7 +29,7 @@ export default function PatientDashboard() {
     <DashboardLayout>
       <div className="p-6 space-y-6">
         <PageTitle 
-          title={`Welcome, ${user?.name?.split(' ')[0] || 'there'}!`} 
+          title={`Welcome, ${profile?.full_name?.split(' ')[0] || 'there'}!`} 
           subtitle="Your mental wellness dashboard"
         />
 

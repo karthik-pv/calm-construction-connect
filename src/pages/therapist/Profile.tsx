@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { PageTitle } from "@/components/shared/PageTitle";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,27 +12,30 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, CheckCircle, Eye, EyeOff, Loader2, Upload, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 
 export default function TherapistProfile() {
-  const { user, updateProfile } = useAuth();
+  const { profile } = useAuth();
+  const { loading, avatarPreview, handleAvatarChange, updateUserProfile, updatePassword } = useProfile();
   
   const [profileData, setProfileData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    phoneNumber: user?.phoneNumber || "",
-    companyName: user?.companyName || "",
+    full_name: "",
+    email: "",
+    phone_number: "",
+    company_name: "",
     title: "Clinical Psychologist",
-    bio: user?.bio || "Specializing in workplace mental health with particular focus on high-stress industries like construction. My approach combines cognitive-behavioral techniques with practical stress management strategies.",
-    experience: user?.experience || 0,
-    expertise: user?.expertise || ["Anxiety", "Depression", "Workplace Stress"],
-    education: "Ph.D. in Clinical Psychology, University of London",
-    certifications: "Licensed Clinical Psychologist, UKCP Registered",
-    languages: "English, Spanish",
-    appointmentFee: "£90",
-    sessionDuration: "50",
+    bio: "",
+    experience_years: 0,
+    specialization: "",
+    expertise: [] as string[],
+    education: "",
+    certifications: "",
+    languages: "",
+    appointment_fee: "",
+    session_duration: "50",
   });
   
   const [availability, setAvailability] = useState({
@@ -46,7 +48,7 @@ export default function TherapistProfile() {
     sunday: { available: false, start: "10:00", end: "14:00" },
   });
   
-  const [password, setPassword] = useState({
+  const [passwordData, setPasswordData] = useState({
     current: "",
     new: "",
     confirm: "",
@@ -55,20 +57,53 @@ export default function TherapistProfile() {
   const [notifications, setNotifications] = useState({
     email: true,
     sms: false,
-    appNotifications: true,
-    newPatients: true,
-    appointmentReminders: true,
-    platformUpdates: false,
+    app_notifications: true,
+    new_patients: true,
+    appointment_reminders: true,
+    platform_updates: false,
   });
   
-  const [profileImage, setProfileImage] = useState<File | null>(null);
-  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(user?.profilePic || null);
   const [certificateFiles, setCertificateFiles] = useState<File[]>([]);
   const [newExpertise, setNewExpertise] = useState("");
-  
-  const [submitting, setSubmitting] = useState(false);
-  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  
+  // Initialize profile data from context
+  useEffect(() => {
+    if (profile) {
+      // Parse expertise from specialization if it's a JSON string
+      let expertiseArray: string[] = [];
+      try {
+        if (profile.specialization && profile.specialization.startsWith('[')) {
+          expertiseArray = JSON.parse(profile.specialization);
+        } else if (profile.specialization) {
+          expertiseArray = [profile.specialization];
+        }
+      } catch (error) {
+        console.error("Error parsing specialization:", error);
+        if (profile.specialization) {
+          expertiseArray = [profile.specialization];
+        }
+      }
+      
+      setProfileData({
+        full_name: profile.full_name || "",
+        email: profile.email || "",
+        phone_number: profile.phone_number || "",
+        company_name: profile.company_name || "",
+        title: profile.title || "Clinical Psychologist",
+        bio: profile.bio || "",
+        experience_years: profile.experience_years || 0,
+        specialization: profile.specialization || "",
+        expertise: expertiseArray,
+        education: profile.education || "",
+        certifications: profile.certifications || "",
+        languages: profile.languages || "",
+        appointment_fee: profile.appointment_fee || "",
+        session_duration: profile.session_duration || "50",
+      });
+    }
+  }, [profile]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -95,15 +130,7 @@ export default function TherapistProfile() {
   
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setPassword(prev => ({ ...prev, [name]: value }));
-  };
-  
-  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setProfileImage(file);
-      setProfileImagePreview(URL.createObjectURL(file));
-    }
+    setPasswordData(prev => ({ ...prev, [name]: value }));
   };
   
   const handleCertificateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -136,34 +163,34 @@ export default function TherapistProfile() {
   
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
     
-    try {
-      // In a real app, you would upload the profile image to storage and get a URL
-      const profileUpdateData = {
-        name: profileData.name,
-        phoneNumber: profileData.phoneNumber,
-        companyName: profileData.companyName,
-        bio: profileData.bio,
-        profilePic: profileImagePreview || user?.profilePic,
-        experience: profileData.experience,
-        expertise: profileData.expertise,
-      };
-      
-      await updateProfile(profileUpdateData);
+    // Convert expertise array to JSON string for storage in specialization field
+    const specialization = JSON.stringify(profileData.expertise);
+    
+    const success = await updateUserProfile({
+      full_name: profileData.full_name,
+      phone_number: profileData.phone_number,
+      company_name: profileData.company_name,
+      bio: profileData.bio,
+      experience_years: profileData.experience_years,
+      specialization,
+      title: profileData.title,
+      education: profileData.education,
+      certifications: profileData.certifications,
+      languages: profileData.languages,
+      appointment_fee: profileData.appointment_fee,
+      session_duration: profileData.session_duration,
+    });
+    
+    if (success) {
       toast.success("Profile updated successfully");
-    } catch (error) {
-      toast.error("Failed to update profile. Please try again.");
-      console.error("Profile update error:", error);
-    } finally {
-      setSubmitting(false);
     }
   };
   
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password.new !== password.confirm) {
+    if (passwordData.new !== passwordData.confirm) {
       toast.error("New passwords don't match");
       return;
     }
@@ -171,20 +198,16 @@ export default function TherapistProfile() {
     setPasswordSubmitting(true);
     
     try {
-      // Simulate API call to change password
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast.success("Password updated successfully");
+      await updatePassword(passwordData.current, passwordData.new);
       
       // Reset form
-      setPassword({
+      setPasswordData({
         current: "",
         new: "",
         confirm: "",
       });
     } catch (error) {
-      toast.error("Failed to update password. Please try again.");
-      console.error("Password update error:", error);
+      // Error is handled in the hook
     } finally {
       setPasswordSubmitting(false);
     }
@@ -229,9 +252,9 @@ export default function TherapistProfile() {
                     <CardContent className="flex flex-col items-center justify-center">
                       <div className="relative mb-4">
                         <Avatar className="h-32 w-32 border-2 border-primary/20 shadow-lg">
-                          <AvatarImage src={profileImagePreview || undefined} />
+                          <AvatarImage src={avatarPreview || undefined} />
                           <AvatarFallback className="text-4xl font-heading">
-                            {profileData.name.charAt(0)}
+                            {profileData.full_name.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
                         <label 
@@ -244,12 +267,12 @@ export default function TherapistProfile() {
                           id="profile-image" 
                           type="file" 
                           accept="image/*" 
-                          onChange={handleProfileImageChange}
+                          onChange={handleAvatarChange}
                           className="hidden"
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground text-center">
-                        Recommended: Professional headshot, square format
+                      <p className="text-xs text-muted-foreground text-center max-w-[200px]">
+                        Professional headshot recommended. Square format, high quality.
                       </p>
                     </CardContent>
                   </Card>
@@ -259,31 +282,19 @@ export default function TherapistProfile() {
                     <CardHeader>
                       <CardTitle className="gradient-heading">Personal Information</CardTitle>
                       <CardDescription>
-                        Update your personal and professional details
+                        Update your professional details
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="name">Full Name</Label>
+                          <Label htmlFor="full_name">Full Name</Label>
                           <Input
-                            id="name"
-                            name="name"
-                            value={profileData.name}
+                            id="full_name"
+                            name="full_name"
+                            value={profileData.full_name}
                             onChange={handleInputChange}
                             placeholder="Your full name"
-                            className="border-white/10 bg-black/20"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="title">Professional Title</Label>
-                          <Input
-                            id="title"
-                            name="title"
-                            value={profileData.title}
-                            onChange={handleInputChange}
-                            placeholder="e.g. Clinical Psychologist"
-                            className="border-white/10 bg-black/20"
                           />
                         </div>
                         <div className="space-y-2">
@@ -295,42 +306,26 @@ export default function TherapistProfile() {
                             onChange={handleInputChange}
                             placeholder="Your email"
                             disabled
-                            className="border-white/10 bg-black/20"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="phoneNumber">Phone Number</Label>
+                          <Label htmlFor="phone_number">Phone Number</Label>
                           <Input
-                            id="phoneNumber"
-                            name="phoneNumber"
-                            value={profileData.phoneNumber}
+                            id="phone_number"
+                            name="phone_number"
+                            value={profileData.phone_number}
                             onChange={handleInputChange}
                             placeholder="Your phone number"
-                            className="border-white/10 bg-black/20"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="companyName">Practice/Clinic Name</Label>
+                          <Label htmlFor="title">Professional Title</Label>
                           <Input
-                            id="companyName"
-                            name="companyName"
-                            value={profileData.companyName}
+                            id="title"
+                            name="title"
+                            value={profileData.title}
                             onChange={handleInputChange}
-                            placeholder="Your practice name"
-                            className="border-white/10 bg-black/20"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="experience">Years of Experience</Label>
-                          <Input
-                            id="experience"
-                            name="experience"
-                            type="number"
-                            min="0"
-                            value={profileData.experience}
-                            onChange={handleInputChange}
-                            placeholder="Years of practice"
-                            className="border-white/10 bg-black/20"
+                            placeholder="Your professional title"
                           />
                         </div>
                       </div>
@@ -342,85 +337,59 @@ export default function TherapistProfile() {
                           name="bio"
                           value={profileData.bio}
                           onChange={handleInputChange}
-                          placeholder="Describe your approach and experience"
+                          placeholder="A brief professional biography highlighting your approach and expertise"
                           rows={4}
-                          className="border-white/10 bg-black/20 resize-none"
                         />
-                        <p className="text-xs text-muted-foreground">
-                          This will be visible to potential patients. Highlight your expertise in construction worker mental health.
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>Areas of Expertise</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            value={newExpertise}
-                            onChange={(e) => setNewExpertise(e.target.value)}
-                            onKeyDown={handleKeyPress}
-                            placeholder="Add expertise (e.g. Anxiety)"
-                            className="border-white/10 bg-black/20"
-                          />
-                          <Button 
-                            type="button" 
-                            onClick={handleAddExpertise}
-                            disabled={!newExpertise.trim()}
-                            variant="elegant"
-                          >
-                            Add
-                          </Button>
-                        </div>
-                        
-                        {profileData.expertise.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {profileData.expertise.map(item => (
-                              <Badge key={item} variant="secondary" className="bg-white/5 text-white border-white/10">
-                                {item}
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveExpertise(item)}
-                                  className="ml-1 rounded-full hover:bg-destructive/20 p-0.5"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
                       </div>
                       
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="appointmentFee">Session Fee</Label>
+                          <Label htmlFor="experience_years">Years of Experience</Label>
                           <Input
-                            id="appointmentFee"
-                            name="appointmentFee"
-                            value={profileData.appointmentFee}
+                            id="experience_years"
+                            name="experience_years"
+                            type="number"
+                            min="0"
+                            value={profileData.experience_years}
                             onChange={handleInputChange}
-                            placeholder="e.g. £90"
-                            className="border-white/10 bg-black/20"
+                            placeholder="Years of professional experience"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="sessionDuration">Session Duration (minutes)</Label>
+                          <Label htmlFor="languages">Languages Spoken</Label>
                           <Input
-                            id="sessionDuration"
-                            name="sessionDuration"
-                            type="number"
-                            min="15"
-                            step="5"
-                            value={profileData.sessionDuration}
+                            id="languages"
+                            name="languages"
+                            value={profileData.languages}
+                            onChange={handleInputChange}
+                            placeholder="e.g. English, Spanish"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="appointment_fee">Session Fee (£)</Label>
+                          <Input
+                            id="appointment_fee"
+                            name="appointment_fee"
+                            value={profileData.appointment_fee}
+                            onChange={handleInputChange}
+                            placeholder="e.g. £90"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="session_duration">Session Duration (minutes)</Label>
+                          <Input
+                            id="session_duration"
+                            name="session_duration"
+                            value={profileData.session_duration}
                             onChange={handleInputChange}
                             placeholder="e.g. 50"
-                            className="border-white/10 bg-black/20"
                           />
                         </div>
                       </div>
                     </CardContent>
-                    
-                    <CardFooter className="flex justify-end">
-                      <Button type="submit" disabled={submitting} variant="elegant">
-                        {submitting ? (
+                    <CardFooter className="justify-end">
+                      <Button type="submit" disabled={loading}>
+                        {loading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Saving...
@@ -442,15 +411,15 @@ export default function TherapistProfile() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="gradient-heading">Credentials & Qualifications</CardTitle>
-                  <CardDescription>
-                    Showcase your professional qualifications to build patient trust
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card className="glass-card">
+                  <CardHeader>
+                    <CardTitle className="gradient-heading">Education & Certifications</CardTitle>
+                    <CardDescription>
+                      Your academic background and professional qualifications
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="education">Education</Label>
                       <Textarea
@@ -458,100 +427,146 @@ export default function TherapistProfile() {
                         name="education"
                         value={profileData.education}
                         onChange={handleInputChange}
-                        placeholder="List your degrees and educational background"
+                        placeholder="List your degrees and academic qualifications"
                         rows={3}
-                        className="border-white/10 bg-black/20 resize-none"
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="certifications">Certifications & Licenses</Label>
+                      <Label htmlFor="certifications">Professional Certifications</Label>
                       <Textarea
                         id="certifications"
                         name="certifications"
                         value={profileData.certifications}
                         onChange={handleInputChange}
-                        placeholder="List your professional certifications and licenses"
+                        placeholder="List your professional licenses and certifications"
                         rows={3}
-                        className="border-white/10 bg-black/20 resize-none"
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="languages">Languages Spoken</Label>
-                      <Input
-                        id="languages"
-                        name="languages"
-                        value={profileData.languages}
-                        onChange={handleInputChange}
-                        placeholder="e.g. English, Spanish"
-                        className="border-white/10 bg-black/20"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Upload Credentials</Label>
-                      <div className="flex items-center gap-2">
-                        <label 
-                          htmlFor="credentials"
-                          className="cursor-pointer flex items-center gap-2 border border-white/10 rounded-md px-4 py-2 hover:bg-white/5 transition-colors duration-200"
-                        >
-                          <Upload className="h-5 w-5" />
-                          <span>Upload Files</span>
+                      <Label htmlFor="certificate-upload">Upload Certificates</Label>
+                      <div className="border-2 border-dashed border-border rounded-md p-4 text-center cursor-pointer hover:bg-primary/5 transition-colors">
+                        <label htmlFor="certificate-upload" className="cursor-pointer block">
+                          <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">
+                            Click to upload or drag and drop
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            PDF, PNG or JPG (max. 5MB)
+                          </p>
                         </label>
-                        <input 
-                          id="credentials" 
-                          type="file" 
-                          multiple 
-                          accept=".pdf,.jpg,.jpeg,.png" 
+                        <input
+                          id="certificate-upload"
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg"
+                          multiple
                           onChange={handleCertificateUpload}
                           className="hidden"
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Upload licenses, certifications, or qualifications (PDF, JPG, PNG)
-                      </p>
-                      
-                      {certificateFiles.length > 0 && (
-                        <div className="space-y-2 mt-4">
-                          <Label>Uploaded Files</Label>
-                          <div className="space-y-2">
-                            {certificateFiles.map((file, index) => (
-                              <div 
-                                key={index} 
-                                className="flex items-center justify-between p-2 border border-white/10 rounded-md bg-black/20"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <CheckCircle className="h-4 w-4 text-primary" />
-                                  <span className="text-sm truncate max-w-[200px]">
-                                    {file.name}
-                                  </span>
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleRemoveCertificate(index)}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-end">
-                  <Button
-                    onClick={() => toast.success("Credentials updated successfully")}
-                    variant="elegant"
-                  >
-                    Save Credentials
-                  </Button>
-                </CardFooter>
-              </Card>
+                    
+                    {certificateFiles.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium">Uploaded Certificates:</h4>
+                        <div className="space-y-2">
+                          {certificateFiles.map((file, index) => (
+                            <div 
+                              key={index}
+                              className="flex items-center justify-between p-2 rounded-md bg-primary/10"
+                            >
+                              <div className="flex items-center">
+                                <CheckCircle className="h-4 w-4 mr-2 text-primary" />
+                                <span className="text-sm truncate max-w-[200px]">{file.name}</span>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveCertificate(index)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                
+                <Card className="glass-card">
+                  <CardHeader>
+                    <CardTitle className="gradient-heading">Areas of Expertise</CardTitle>
+                    <CardDescription>
+                      Specify the mental health areas you specialize in
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="add-expertise">Add Expertise</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="add-expertise"
+                          value={newExpertise}
+                          onChange={(e) => setNewExpertise(e.target.value)}
+                          onKeyDown={handleKeyPress}
+                          placeholder="e.g. Anxiety, Depression, Trauma"
+                        />
+                        <Button 
+                          type="button" 
+                          onClick={handleAddExpertise}
+                          disabled={!newExpertise.trim()}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Current Expertise</Label>
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {profileData.expertise.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            No areas of expertise added yet. Add some above.
+                          </p>
+                        ) : (
+                          profileData.expertise.map((item, index) => (
+                            <Badge
+                              key={index}
+                              className="flex items-center gap-1 bg-primary/20 hover:bg-primary/30 text-foreground"
+                            >
+                              {item}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 p-0 text-foreground hover:text-destructive"
+                                onClick={() => handleRemoveExpertise(item)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </Badge>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="justify-end">
+                    <Button type="button" onClick={handleProfileSubmit} disabled={loading}>
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save Expertise"
+                      )}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </div>
             </motion.div>
           </TabsContent>
           
@@ -563,68 +578,69 @@ export default function TherapistProfile() {
             >
               <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle className="gradient-heading">Availability Schedule</CardTitle>
+                  <CardTitle className="gradient-heading">Session Availability</CardTitle>
                   <CardDescription>
-                    Set your working hours for patient appointments
+                    Set your regular working hours for patient appointments
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-6">
-                    {Object.entries(availability).map(([day, { available, start, end }]) => (
-                      <div key={day} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor={`${day}-available`} className="capitalize font-medium">
-                            {day}
-                          </Label>
+                  <div className="space-y-4">
+                    {Object.entries(availability).map(([day, value]) => (
+                      <div key={day} className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-center">
+                        <div className="flex items-center gap-3">
                           <Switch
                             id={`${day}-available`}
-                            checked={available}
+                            checked={value.available}
                             onCheckedChange={(checked) => 
                               handleAvailabilityChange(day, "available", checked)
                             }
                           />
+                          <Label htmlFor={`${day}-available`} className="capitalize">
+                            {day}
+                          </Label>
                         </div>
                         
-                        {available && (
-                          <div className="grid grid-cols-2 gap-4 pl-0 sm:pl-8">
-                            <div className="space-y-2">
-                              <Label htmlFor={`${day}-start`}>Start Time</Label>
-                              <Input
-                                id={`${day}-start`}
-                                type="time"
-                                value={start}
-                                onChange={(e) => 
-                                  handleAvailabilityChange(day, "start", e.target.value)
-                                }
-                                className="border-white/10 bg-black/20"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor={`${day}-end`}>End Time</Label>
-                              <Input
-                                id={`${day}-end`}
-                                type="time"
-                                value={end}
-                                onChange={(e) => 
-                                  handleAvailabilityChange(day, "end", e.target.value)
-                                }
-                                className="border-white/10 bg-black/20"
-                              />
-                            </div>
+                        <div className="sm:col-span-3 grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor={`${day}-start`}>Start Time</Label>
+                            <Input
+                              id={`${day}-start`}
+                              type="time"
+                              value={value.start}
+                              onChange={(e) => 
+                                handleAvailabilityChange(day, "start", e.target.value)
+                              }
+                              disabled={!value.available}
+                            />
                           </div>
-                        )}
+                          <div className="space-y-2">
+                            <Label htmlFor={`${day}-end`}>End Time</Label>
+                            <Input
+                              id={`${day}-end`}
+                              type="time"
+                              value={value.end}
+                              onChange={(e) => 
+                                handleAvailabilityChange(day, "end", e.target.value)
+                              }
+                              disabled={!value.available}
+                            />
+                          </div>
+                        </div>
                         
-                        {day !== "sunday" && <Separator className="mt-4 bg-white/10" />}
+                        {day !== "sunday" && <Separator className="sm:col-span-4 my-2" />}
                       </div>
                     ))}
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-end">
-                  <Button
-                    onClick={() => toast.success("Availability updated successfully")}
-                    variant="elegant"
+                <CardFooter className="justify-end">
+                  <Button 
+                    type="button" 
+                    onClick={() => {
+                      // In a real app, save availability to database
+                      toast.success("Availability schedule updated");
+                    }}
                   >
-                    Save Availability
+                    Save Schedule
                   </Button>
                 </CardFooter>
               </Card>
@@ -636,179 +652,85 @@ export default function TherapistProfile() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-6"
             >
               <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle className="gradient-heading">Change Password</CardTitle>
+                  <CardTitle className="gradient-heading">Security Settings</CardTitle>
                   <CardDescription>
-                    Update your password to keep your account secure
+                    Manage your account security
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                  <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-md">
                     <div className="space-y-2">
-                      <Label htmlFor="current">Current Password</Label>
+                      <Label htmlFor="current-password">Current Password</Label>
                       <div className="relative">
                         <Input
-                          id="current"
+                          id="current-password"
                           name="current"
                           type={showPassword ? "text" : "password"}
-                          value={password.current}
+                          value={passwordData.current}
                           onChange={handlePasswordChange}
-                          placeholder="Your current password"
-                          className="border-white/10 bg-black/20"
+                          placeholder="Enter your current password"
                         />
-                        <Button
+                        <button
                           type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-0 top-0 h-full px-3"
                           onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                         >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
                       </div>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="new">New Password</Label>
+                      <Label htmlFor="new-password">New Password</Label>
                       <div className="relative">
                         <Input
-                          id="new"
+                          id="new-password"
                           name="new"
                           type={showPassword ? "text" : "password"}
-                          value={password.new}
+                          value={passwordData.new}
                           onChange={handlePasswordChange}
-                          placeholder="New password"
-                          className="border-white/10 bg-black/20"
+                          placeholder="Enter your new password"
                         />
                       </div>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="confirm">Confirm New Password</Label>
+                      <Label htmlFor="confirm-password">Confirm New Password</Label>
                       <div className="relative">
                         <Input
-                          id="confirm"
+                          id="confirm-password"
                           name="confirm"
                           type={showPassword ? "text" : "password"}
-                          value={password.confirm}
+                          value={passwordData.confirm}
                           onChange={handlePasswordChange}
-                          placeholder="Confirm new password"
-                          className="border-white/10 bg-black/20"
+                          placeholder="Confirm your new password"
                         />
                       </div>
                     </div>
                     
-                    <div className="space-y-2 pt-2">
-                      <Button 
-                        type="submit" 
-                        disabled={passwordSubmitting || !password.current || !password.new || !password.confirm}
-                        variant="elegant"
-                      >
-                        {passwordSubmitting ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Updating...
-                          </>
-                        ) : (
-                          "Update Password"
-                        )}
-                      </Button>
-                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={passwordSubmitting || !passwordData.current || !passwordData.new || !passwordData.confirm}
+                    >
+                      {passwordSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Updating Password...
+                        </>
+                      ) : (
+                        "Update Password"
+                      )}
+                    </Button>
                   </form>
                 </CardContent>
-              </Card>
-              
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="gradient-heading">Notification Preferences</CardTitle>
-                  <CardDescription>
-                    Manage how you receive notifications
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="email-notifications" className="font-medium">Email Notifications</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Receive notifications via email
-                        </p>
-                      </div>
-                      <Switch
-                        id="email-notifications"
-                        checked={notifications.email}
-                        onCheckedChange={(checked) => 
-                          handleNotificationChange("email", checked)
-                        }
-                      />
-                    </div>
-                    
-                    <Separator className="bg-white/10" />
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="sms-notifications" className="font-medium">SMS Notifications</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Receive notifications via text message
-                        </p>
-                      </div>
-                      <Switch
-                        id="sms-notifications"
-                        checked={notifications.sms}
-                        onCheckedChange={(checked) => 
-                          handleNotificationChange("sms", checked)
-                        }
-                      />
-                    </div>
-                    
-                    <Separator className="bg-white/10" />
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="new-patients" className="font-medium">New Patient Alerts</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Get notified when new patients request appointments
-                        </p>
-                      </div>
-                      <Switch
-                        id="new-patients"
-                        checked={notifications.newPatients}
-                        onCheckedChange={(checked) => 
-                          handleNotificationChange("newPatients", checked)
-                        }
-                      />
-                    </div>
-                    
-                    <Separator className="bg-white/10" />
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="appointment-reminders" className="font-medium">Appointment Reminders</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Receive reminders about upcoming appointments
-                        </p>
-                      </div>
-                      <Switch
-                        id="appointment-reminders"
-                        checked={notifications.appointmentReminders}
-                        onCheckedChange={(checked) => 
-                          handleNotificationChange("appointmentReminders", checked)
-                        }
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-end">
-                  <Button
-                    onClick={() => toast.success("Notification preferences updated!")}
-                    variant="elegant"
-                  >
-                    Save Preferences
-                  </Button>
-                </CardFooter>
               </Card>
             </motion.div>
           </TabsContent>

@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { PageTitle } from "@/components/shared/PageTitle";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,45 +12,56 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, CheckCircle, Eye, EyeOff, Loader2, Upload } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
 export default function PatientProfile() {
-  const { user, updateProfile } = useAuth();
+  const { profile } = useAuth();
+  const { loading, avatarPreview, handleAvatarChange, updateUserProfile, updatePassword } = useProfile();
   
   const [profileData, setProfileData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    phoneNumber: user?.phoneNumber || "",
-    companyName: user?.companyName || "",
-    bio: user?.bio || "",
-    jobTitle: "Construction Site Manager",
-    jobExperience: "8 years",
-    emergencyContact: "",
-    emergencyPhone: "",
+    full_name: "",
+    email: "",
+    phone_number: "",
+    company_name: "",
+    bio: "",
+    emergency_contact: "",
+    emergency_phone: "",
   });
   
   const [notifications, setNotifications] = useState({
     email: true,
     sms: false,
-    appNotifications: true,
-    weeklyReport: true,
-    therapistMessages: true,
-    resourceUpdates: false,
+    app_notifications: true,
+    weekly_report: true,
+    therapist_messages: true,
+    resource_updates: false,
   });
   
-  const [password, setPassword] = useState({
+  const [passwordData, setPasswordData] = useState({
     current: "",
     new: "",
     confirm: "",
   });
   
-  const [profileImage, setProfileImage] = useState<File | null>(null);
-  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(user?.profilePic || null);
-  
-  const [submitting, setSubmitting] = useState(false);
-  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  
+  // Initialize profile data from context
+  useEffect(() => {
+    if (profile) {
+      setProfileData({
+        full_name: profile.full_name || "",
+        email: profile.email || "",
+        phone_number: profile.phone_number || "",
+        company_name: profile.company_name || "",
+        bio: profile.bio || "",
+        emergency_contact: profile.emergency_contact || "",
+        emergency_phone: profile.emergency_phone || "",
+      });
+    }
+  }, [profile]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -64,45 +74,30 @@ export default function PatientProfile() {
   
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setPassword(prev => ({ ...prev, [name]: value }));
-  };
-  
-  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setProfileImage(file);
-      setProfileImagePreview(URL.createObjectURL(file));
-    }
+    setPasswordData(prev => ({ ...prev, [name]: value }));
   };
   
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
     
-    try {
-      // In a real app, you would upload the profile image to storage and get a URL
-      const profileData = {
-        name: profileData.name,
-        phoneNumber: profileData.phoneNumber,
-        companyName: profileData.companyName,
-        bio: profileData.bio,
-        profilePic: profileImagePreview || user?.profilePic,
-      };
-      
-      await updateProfile(profileData);
+    const success = await updateUserProfile({
+      full_name: profileData.full_name,
+      phone_number: profileData.phone_number,
+      company_name: profileData.company_name,
+      bio: profileData.bio,
+      emergency_contact: profileData.emergency_contact,
+      emergency_phone: profileData.emergency_phone,
+    });
+    
+    if (success) {
       toast.success("Profile updated successfully");
-    } catch (error) {
-      toast.error("Failed to update profile. Please try again.");
-      console.error("Profile update error:", error);
-    } finally {
-      setSubmitting(false);
     }
   };
   
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password.new !== password.confirm) {
+    if (passwordData.new !== passwordData.confirm) {
       toast.error("New passwords don't match");
       return;
     }
@@ -110,20 +105,16 @@ export default function PatientProfile() {
     setPasswordSubmitting(true);
     
     try {
-      // Simulate API call to change password
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast.success("Password updated successfully");
+      await updatePassword(passwordData.current, passwordData.new);
       
       // Reset form
-      setPassword({
+      setPasswordData({
         current: "",
         new: "",
         confirm: "",
       });
     } catch (error) {
-      toast.error("Failed to update password. Please try again.");
-      console.error("Password update error:", error);
+      // Error is handled in the hook
     } finally {
       setPasswordSubmitting(false);
     }
@@ -160,9 +151,9 @@ export default function PatientProfile() {
                     <CardContent className="flex flex-col items-center justify-center">
                       <div className="relative mb-4">
                         <Avatar className="h-32 w-32">
-                          <AvatarImage src={profileImagePreview || undefined} />
+                          <AvatarImage src={avatarPreview || undefined} />
                           <AvatarFallback className="text-4xl">
-                            {profileData.name.charAt(0)}
+                            {profileData.full_name.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
                         <label 
@@ -175,7 +166,7 @@ export default function PatientProfile() {
                           id="profile-image" 
                           type="file" 
                           accept="image/*" 
-                          onChange={handleProfileImageChange}
+                          onChange={handleAvatarChange}
                           className="hidden"
                         />
                       </div>
@@ -196,11 +187,11 @@ export default function PatientProfile() {
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="name">Full Name</Label>
+                          <Label htmlFor="full_name">Full Name</Label>
                           <Input
-                            id="name"
-                            name="name"
-                            value={profileData.name}
+                            id="full_name"
+                            name="full_name"
+                            value={profileData.full_name}
                             onChange={handleInputChange}
                             placeholder="Your full name"
                           />
@@ -217,21 +208,21 @@ export default function PatientProfile() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="phoneNumber">Phone Number</Label>
+                          <Label htmlFor="phone_number">Phone Number</Label>
                           <Input
-                            id="phoneNumber"
-                            name="phoneNumber"
-                            value={profileData.phoneNumber}
+                            id="phone_number"
+                            name="phone_number"
+                            value={profileData.phone_number}
                             onChange={handleInputChange}
                             placeholder="Your phone number"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="companyName">Construction Company</Label>
+                          <Label htmlFor="company_name">Construction Company</Label>
                           <Input
-                            id="companyName"
-                            name="companyName"
-                            value={profileData.companyName}
+                            id="company_name"
+                            name="company_name"
+                            value={profileData.company_name}
                             onChange={handleInputChange}
                             placeholder="Your company name"
                           />
@@ -249,77 +240,38 @@ export default function PatientProfile() {
                           rows={4}
                         />
                       </div>
-                    </CardContent>
-                    
-                    <Separator />
-                    
-                    <CardHeader>
-                      <CardTitle>Work Information</CardTitle>
-                      <CardDescription>
-                        Details about your construction experience
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="jobTitle">Job Title</Label>
-                          <Input
-                            id="jobTitle"
-                            name="jobTitle"
-                            value={profileData.jobTitle}
-                            onChange={handleInputChange}
-                            placeholder="Your position"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="jobExperience">Years of Experience</Label>
-                          <Input
-                            id="jobExperience"
-                            name="jobExperience"
-                            value={profileData.jobExperience}
-                            onChange={handleInputChange}
-                            placeholder="Years in construction"
-                          />
+                      
+                      <Separator className="my-4" />
+                      
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">Emergency Contact</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="emergency_contact">Contact Name</Label>
+                            <Input
+                              id="emergency_contact"
+                              name="emergency_contact"
+                              value={profileData.emergency_contact}
+                              onChange={handleInputChange}
+                              placeholder="Emergency contact name"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="emergency_phone">Contact Phone</Label>
+                            <Input
+                              id="emergency_phone"
+                              name="emergency_phone"
+                              value={profileData.emergency_phone}
+                              onChange={handleInputChange}
+                              placeholder="Emergency contact phone"
+                            />
+                          </div>
                         </div>
                       </div>
                     </CardContent>
-                    
-                    <Separator />
-                    
-                    <CardHeader>
-                      <CardTitle>Emergency Contact</CardTitle>
-                      <CardDescription>
-                        Who to contact in case of emergency
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="emergencyContact">Contact Name</Label>
-                          <Input
-                            id="emergencyContact"
-                            name="emergencyContact"
-                            value={profileData.emergencyContact}
-                            onChange={handleInputChange}
-                            placeholder="Emergency contact name"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="emergencyPhone">Contact Phone</Label>
-                          <Input
-                            id="emergencyPhone"
-                            name="emergencyPhone"
-                            value={profileData.emergencyPhone}
-                            onChange={handleInputChange}
-                            placeholder="Emergency contact phone"
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                    
-                    <CardFooter className="flex justify-end">
-                      <Button type="submit" disabled={submitting}>
-                        {submitting ? (
+                    <CardFooter className="justify-end">
+                      <Button type="submit" disabled={loading}>
+                        {loading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Saving...
@@ -340,77 +292,79 @@ export default function PatientProfile() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-6"
             >
               <Card className="bg-black/40 border-border backdrop-blur-md">
                 <CardHeader>
-                  <CardTitle>Change Password</CardTitle>
+                  <CardTitle>Security Settings</CardTitle>
                   <CardDescription>
-                    Update your password to keep your account secure
+                    Update your password and security settings
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="current">Current Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="current"
-                          name="current"
-                          type={showPassword ? "text" : "password"}
-                          value={password.current}
-                          onChange={handlePasswordChange}
-                          placeholder="Your current password"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-0 top-0 h-full px-3"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
+                    <div className="space-y-4 max-w-md">
+                      <div className="space-y-2">
+                        <Label htmlFor="current-password">Current Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="current-password"
+                            name="current"
+                            type={showPassword ? "text" : "password"}
+                            value={passwordData.current}
+                            onChange={handlePasswordChange}
+                            placeholder="Enter your current password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="new">New Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="new"
-                          name="new"
-                          type={showPassword ? "text" : "password"}
-                          value={password.new}
-                          onChange={handlePasswordChange}
-                          placeholder="New password"
-                        />
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="new-password">New Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="new-password"
+                            name="new"
+                            type={showPassword ? "text" : "password"}
+                            value={passwordData.new}
+                            onChange={handlePasswordChange}
+                            placeholder="Enter your new password"
+                          />
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="confirm">Confirm New Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="confirm"
-                          name="confirm"
-                          type={showPassword ? "text" : "password"}
-                          value={password.confirm}
-                          onChange={handlePasswordChange}
-                          placeholder="Confirm new password"
-                        />
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-password">Confirm New Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="confirm-password"
+                            name="confirm"
+                            type={showPassword ? "text" : "password"}
+                            value={passwordData.confirm}
+                            onChange={handlePasswordChange}
+                            placeholder="Confirm your new password"
+                          />
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div className="space-y-2 pt-2">
+                      
                       <Button 
                         type="submit" 
-                        disabled={passwordSubmitting || !password.current || !password.new || !password.confirm}
+                        className="w-full" 
+                        disabled={passwordSubmitting || !passwordData.current || !passwordData.new || !passwordData.confirm}
                       >
                         {passwordSubmitting ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Updating...
+                            Updating Password...
                           </>
                         ) : (
                           "Update Password"
@@ -418,62 +372,6 @@ export default function PatientProfile() {
                       </Button>
                     </div>
                   </form>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-black/40 border-border backdrop-blur-md">
-                <CardHeader>
-                  <CardTitle>Account Security</CardTitle>
-                  <CardDescription>
-                    Manage your account security settings
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">Two-Factor Authentication</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Add an extra layer of security to your account
-                        </p>
-                      </div>
-                      <Button variant="outline">Set Up</Button>
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">Active Sessions</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Manage devices where you're currently logged in
-                        </p>
-                      </div>
-                      <Button variant="outline">Manage</Button>
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">Data Export</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Download a copy of your personal data
-                        </p>
-                      </div>
-                      <Button variant="outline">Export</Button>
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div>
-                      <h4 className="font-medium mb-2">Delete Account</h4>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Permanently delete your account and all your data
-                      </p>
-                      <Button variant="destructive">Delete Account</Button>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -493,15 +391,9 @@ export default function PatientProfile() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-medium">Communication Channels</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Choose how you'd like to receive notifications
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-4">
+                  <div className="space-y-3">
+                    <h3 className="font-medium">Contact Methods</h3>
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label htmlFor="email-notifications">Email Notifications</Label>
@@ -512,120 +404,92 @@ export default function PatientProfile() {
                         <Switch
                           id="email-notifications"
                           checked={notifications.email}
-                          onCheckedChange={(checked) => 
-                            handleNotificationChange("email", checked)
-                          }
+                          onCheckedChange={(checked) => handleNotificationChange('email', checked)}
                         />
                       </div>
-                      
-                      <Separator />
                       
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label htmlFor="sms-notifications">SMS Notifications</Label>
                           <p className="text-sm text-muted-foreground">
-                            Receive notifications via text message
+                            Receive important alerts via text message
                           </p>
                         </div>
                         <Switch
                           id="sms-notifications"
                           checked={notifications.sms}
-                          onCheckedChange={(checked) => 
-                            handleNotificationChange("sms", checked)
-                          }
+                          onCheckedChange={(checked) => handleNotificationChange('sms', checked)}
                         />
                       </div>
-                      
-                      <Separator />
                       
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label htmlFor="app-notifications">In-App Notifications</Label>
                           <p className="text-sm text-muted-foreground">
-                            Receive notifications within the app
+                            Show notifications within the application
                           </p>
                         </div>
                         <Switch
                           id="app-notifications"
-                          checked={notifications.appNotifications}
-                          onCheckedChange={(checked) => 
-                            handleNotificationChange("appNotifications", checked)
-                          }
+                          checked={notifications.app_notifications}
+                          onCheckedChange={(checked) => handleNotificationChange('app_notifications', checked)}
                         />
                       </div>
                     </div>
                   </div>
                   
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-medium">Notification Types</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Select which types of notifications you want to receive
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-4">
+                  <Separator />
+                  
+                  <div className="space-y-3">
+                    <h3 className="font-medium">Notification Types</h3>
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
-                          <Label htmlFor="therapist-messages">Therapist Messages</Label>
+                          <Label htmlFor="weekly-report">Weekly Mental Health Report</Label>
                           <p className="text-sm text-muted-foreground">
-                            Get notified when a therapist sends you a message
-                          </p>
-                        </div>
-                        <Switch
-                          id="therapist-messages"
-                          checked={notifications.therapistMessages}
-                          onCheckedChange={(checked) => 
-                            handleNotificationChange("therapistMessages", checked)
-                          }
-                        />
-                      </div>
-                      
-                      <Separator />
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="weekly-report">Weekly Reports</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Receive weekly summary of your mental wellness progress
+                            Receive weekly summaries of your mental health progress
                           </p>
                         </div>
                         <Switch
                           id="weekly-report"
-                          checked={notifications.weeklyReport}
-                          onCheckedChange={(checked) => 
-                            handleNotificationChange("weeklyReport", checked)
-                          }
+                          checked={notifications.weekly_report}
+                          onCheckedChange={(checked) => handleNotificationChange('weekly_report', checked)}
                         />
                       </div>
                       
-                      <Separator />
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="therapist-messages">Therapist Messages</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Get notified when your therapist sends you a message
+                          </p>
+                        </div>
+                        <Switch
+                          id="therapist-messages"
+                          checked={notifications.therapist_messages}
+                          onCheckedChange={(checked) => handleNotificationChange('therapist_messages', checked)}
+                        />
+                      </div>
                       
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label htmlFor="resource-updates">Resource Updates</Label>
                           <p className="text-sm text-muted-foreground">
-                            Get notified about new mental health resources and articles
+                            Get notified when new mental health resources are available
                           </p>
                         </div>
                         <Switch
                           id="resource-updates"
-                          checked={notifications.resourceUpdates}
-                          onCheckedChange={(checked) => 
-                            handleNotificationChange("resourceUpdates", checked)
-                          }
+                          checked={notifications.resource_updates}
+                          onCheckedChange={(checked) => handleNotificationChange('resource_updates', checked)}
                         />
                       </div>
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-end">
-                  <Button
-                    onClick={() => {
-                      toast.success("Notification preferences updated!");
-                    }}
-                  >
-                    Save Preferences
+                <CardFooter className="justify-end">
+                  <Button type="button">
+                    Save Notification Settings
                   </Button>
                 </CardFooter>
               </Card>

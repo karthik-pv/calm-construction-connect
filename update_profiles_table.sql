@@ -1,0 +1,13 @@
+-- Add new fields to the profiles table
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone_number TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS company_name TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS emergency_contact TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS emergency_phone TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS education TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS certifications TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS languages TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS appointment_fee TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS session_duration TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT; 

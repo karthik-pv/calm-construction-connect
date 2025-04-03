@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,9 +6,8 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AuthLayout } from "@/components/layouts/AuthLayout";
-import { useAuth, UserRole } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Info } from "lucide-react";
@@ -18,7 +16,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-  role: z.enum(["patient", "therapist"])
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -33,12 +30,11 @@ export default function Login() {
     defaultValues: {
       email: "dummy@gmail.com",
       password: "password",
-      role: "patient"
     },
   });
   
   const onSubmit = async (data: FormData) => {
-    await login(data.email, data.password, data.role);
+    await login(data.email, data.password);
   };
 
   const container = {
@@ -69,7 +65,7 @@ export default function Login() {
         <Alert className="mb-6 bg-primary/10 text-primary border-primary/20">
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Use <strong>dummy@gmail.com</strong> with password <strong>password</strong> to log in as either a patient or therapist.
+            Use <strong>dummy@gmail.com</strong> with password <strong>password</strong> to log in.
           </AlertDescription>
         </Alert>
       </motion.div>
@@ -80,35 +76,13 @@ export default function Login() {
         </TabsList>
         
         <TabsContent value="credentials">
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
             <motion.div 
-              className="space-y-4"
+              className="space-y-6"
               variants={container}
               initial="hidden"
               animate="show"
             >
-              <motion.div variants={item}>
-                <div className="space-y-2">
-                  <Label htmlFor="role">I am a</Label>
-                  <RadioGroup
-                    id="role"
-                    defaultValue="patient"
-                    className="flex gap-4"
-                    {...form.register("role")}
-                    onValueChange={(value) => form.setValue("role", value as UserRole)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="patient" id="patient" />
-                      <Label htmlFor="patient">Patient</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="therapist" id="therapist" />
-                      <Label htmlFor="therapist">Therapist</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              </motion.div>
-              
               <motion.div variants={item}>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -118,6 +92,7 @@ export default function Login() {
                     placeholder="name@example.com"
                     autoComplete="email"
                     {...form.register("email")}
+                    className="bg-transparent"
                   />
                   {form.formState.errors.email && (
                     <p className="text-sm text-destructive">
@@ -145,12 +120,13 @@ export default function Login() {
                       placeholder="••••••••"
                       autoComplete="current-password"
                       {...form.register("password")}
+                      className="bg-transparent"
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute right-0 top-0 h-full px-3"
+                      className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -167,7 +143,7 @@ export default function Login() {
               <motion.div variants={item}>
                 <Button
                   type="submit"
-                  className="w-full bg-primary text-white"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors duration-300"
                   disabled={loading}
                 >
                   {loading ? "Logging in..." : "Log in"}
@@ -178,9 +154,9 @@ export default function Login() {
         </TabsContent>
       </Tabs>
       
-      <div className="mt-6 text-center text-sm">
+      <div className="mt-8 text-center text-sm">
         <span className="text-muted-foreground">Don't have an account?</span>{" "}
-        <Link to="/register" className="text-primary hover:underline">
+        <Link to="/register" className="font-medium text-primary hover:underline">
           Sign up
         </Link>
       </div>

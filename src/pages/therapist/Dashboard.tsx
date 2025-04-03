@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { PageTitle } from "@/components/shared/PageTitle";
@@ -91,7 +90,7 @@ const recentMessages = [
 ];
 
 export default function TherapistDashboard() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const [timeOfDay, setTimeOfDay] = useState("");
   const [currentTime, setCurrentTime] = useState(new Date());
   
@@ -175,7 +174,7 @@ export default function TherapistDashboard() {
         >
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold">Good {timeOfDay}, {user?.name?.split(' ')[0] || 'Doctor'}</h1>
+              <h1 className="text-2xl font-bold">Good {timeOfDay}, {profile?.full_name?.split(' ')[0] || 'Doctor'}</h1>
               <p className="text-muted-foreground">
                 {currentTime.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
               </p>

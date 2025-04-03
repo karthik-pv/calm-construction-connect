@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,13 +10,13 @@ import { AuthLayout } from "@/components/layouts/AuthLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { Eye, EyeOff, Upload } from "lucide-react";
 import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabaseClient";
+import { toast } from "sonner";
 
 const formSchema = z.object({
+  full_name: z.string().min(2, { message: "Full name is required" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-  phoneNumber: z.string().min(5, { message: "Please enter a valid phone number" }),
-  companyName: z.string().min(2, { message: "Company name is required" }),
-  name: z.string().min(2, { message: "Legal name is required" }),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -32,11 +31,9 @@ export default function RegisterPatient() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      full_name: "",
       email: "",
       password: "",
-      phoneNumber: "",
-      companyName: "",
-      name: "",
     },
   });
   
@@ -49,24 +46,42 @@ export default function RegisterPatient() {
   };
   
   const onSubmit = async (data: FormData) => {
-    // In a real app, you would upload the image to storage and get a URL
-    // For demo purposes, we'll use a placeholder if no image was selected
-    const profilePicUrl = profileImagePreview || "https://i.pravatar.cc/150?img=" + Math.floor(Math.random() * 70);
-    
+    let avatarUrl: string | undefined = undefined;
+
+    if (profileImage) {
+      const fileExt = profileImage.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, profileImage);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+        avatarUrl = urlData?.publicUrl;
+
+      } catch (error: any) {
+        console.error('Error uploading avatar:', error);
+        toast.error(`Failed to upload profile picture: ${error.message}`);
+      }
+    }
+
     try {
       await registerUser(
         {
           email: data.email,
-          name: data.name,
-          phoneNumber: data.phoneNumber,
-          companyName: data.companyName,
-          profilePic: profilePicUrl,
+          full_name: data.full_name,
         },
         data.password,
         "patient"
       );
     } catch (error) {
-      console.error("Registration error:", error);
+      console.error("Registration submission error:", error);
     }
   };
 
@@ -87,19 +102,33 @@ export default function RegisterPatient() {
 
   return (
     <AuthLayout 
-      title="Register as Construction Worker" 
-      description="Create your patient account"
+      title="Create your Patient Account" 
+      description="Sign up to connect with therapists and resources."
       maxWidth="md:max-w-lg"
     >
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
         <motion.div 
-          className="space-y-4"
+          className="space-y-6"
           variants={container}
           initial="hidden"
           animate="show"
         >
-          <motion.div variants={item} className="text-left text-lg font-medium mb-2">
-            Personal Information
+          <motion.div variants={item}>
+            <div className="space-y-2">
+              <Label htmlFor="full_name">Full Name</Label>
+              <Input
+                id="full_name"
+                type="text"
+                placeholder="John Doe"
+                {...form.register("full_name")}
+                className="bg-transparent"
+              />
+              {form.formState.errors.full_name && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.full_name.message}
+                </p>
+              )}
+            </div>
           </motion.div>
           
           <motion.div variants={item}>
@@ -110,6 +139,7 @@ export default function RegisterPatient() {
                 type="email"
                 placeholder="name@example.com"
                 {...form.register("email")}
+                className="bg-transparent"
               />
               {form.formState.errors.email && (
                 <p className="text-sm text-destructive">
@@ -121,16 +151,28 @@ export default function RegisterPatient() {
           
           <motion.div variants={item}>
             <div className="space-y-2">
-              <Label htmlFor="phoneNumber">Phone number</Label>
-              <Input
-                id="phoneNumber"
-                type="tel"
-                placeholder="+44 123 456 7890"
-                {...form.register("phoneNumber")}
-              />
-              {form.formState.errors.phoneNumber && (
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  {...form.register("password")}
+                  className="bg-transparent"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+              {form.formState.errors.password && (
                 <p className="text-sm text-destructive">
-                  {form.formState.errors.phoneNumber.message}
+                  {form.formState.errors.password.message}
                 </p>
               )}
             </div>
@@ -138,44 +180,10 @@ export default function RegisterPatient() {
           
           <motion.div variants={item}>
             <div className="space-y-2">
-              <Label htmlFor="companyName">Company name</Label>
-              <Input
-                id="companyName"
-                type="text"
-                placeholder="Your construction company"
-                {...form.register("companyName")}
-              />
-              {form.formState.errors.companyName && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.companyName.message}
-                </p>
-              )}
-            </div>
-          </motion.div>
-          
-          <motion.div variants={item}>
-            <div className="space-y-2">
-              <Label htmlFor="name">Legal name</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Full name"
-                {...form.register("name")}
-              />
-              {form.formState.errors.name && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.name.message}
-                </p>
-              )}
-            </div>
-          </motion.div>
-          
-          <motion.div variants={item}>
-            <div className="space-y-2">
-              <Label>Profile pic</Label>
+              <Label>Profile Picture (Optional)</Label>
               <div className="flex items-center gap-4">
                 {profileImagePreview && (
-                  <div className="relative w-16 h-16 rounded-full overflow-hidden">
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-primary/20">
                     <img 
                       src={profileImagePreview} 
                       alt="Profile preview" 
@@ -185,9 +193,9 @@ export default function RegisterPatient() {
                 )}
                 <label 
                   htmlFor="profilePic"
-                  className="cursor-pointer flex items-center gap-2 text-sm text-primary hover:text-primary/80"
+                  className="cursor-pointer flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
                 >
-                  <div className="flex h-9 items-center justify-center rounded-md border border-input bg-background px-3">
+                  <div className="flex h-10 items-center justify-center rounded-md border border-input bg-transparent px-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                     <Upload className="h-4 w-4 mr-2" />
                     {profileImage ? profileImage.name : "Choose file"}
                   </div>
@@ -204,49 +212,27 @@ export default function RegisterPatient() {
           </motion.div>
           
           <motion.div variants={item}>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  {...form.register("password")}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full px-3"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-              {form.formState.errors.password && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.password.message}
-                </p>
-              )}
-            </div>
-          </motion.div>
-          
-          <motion.div variants={item}>
             <Button
               type="submit"
-              className="w-full bg-primary"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors duration-300"
               disabled={loading}
             >
-              {loading ? "Registering..." : "Register"}
+              {loading ? "Registering..." : "Create Account"}
             </Button>
           </motion.div>
         </motion.div>
       </form>
       
-      <div className="mt-6 text-center text-sm">
+      <div className="mt-8 text-center text-sm">
         <span className="text-muted-foreground">Already have an account?</span>{" "}
-        <Link to="/login" className="text-primary hover:underline">
+        <Link to="/login" className="font-medium text-primary hover:underline">
           Login here
+        </Link>
+      </div>
+      <div className="mt-2 text-center text-sm">
+        <span className="text-muted-foreground">Are you a therapist?</span>{" "}
+        <Link to="/register/therapist" className="font-medium text-primary hover:underline">
+          Register here
         </Link>
       </div>
     </AuthLayout>

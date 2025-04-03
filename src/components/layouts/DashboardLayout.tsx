@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -44,6 +43,7 @@ const getNavItems = (role: UserRole): NavItem[] => {
       { label: "Chat", href: "/therapist/chat", icon: MessageCircle },
       { label: "Posts", href: "/therapist/posts", icon: FileText },
       { label: "Profile", href: "/therapist/profile", icon: User },
+      { label: "Manage Therapists", href: "/admin/therapists", icon: Settings },
     ];
   }
 };
@@ -53,21 +53,21 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
   
-  const navItems = user ? getNavItems(user.role) : [];
+  const navItems = profile ? getNavItems(profile.user_role) : [];
   
   useEffect(() => {
     // Check if user is authenticated
-    if (!user) {
+    if (!user || !profile) {
       navigate("/login");
     }
-  }, [user, navigate]);
+  }, [user, profile, navigate]);
   
   useEffect(() => {
     if (sidebarOpen && isMobile) {
@@ -75,7 +75,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, [location.pathname, isMobile]);
   
-  if (!user) return null;
+  if (!user || !profile) return null;
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -95,7 +95,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
                   location.pathname === item.href || 
-                  (location.pathname.startsWith(item.href) && item.href !== (user.role === "patient" ? "/patient" : "/therapist"))
+                  (location.pathname.startsWith(item.href) && item.href !== (profile.user_role === "patient" ? "/patient" : "/therapist"))
                     ? "bg-primary/20 text-primary"
                     : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 )}
@@ -110,19 +110,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="p-4 mt-auto border-t border-border">
           <div className="flex items-center gap-2">
             <Avatar>
-              <AvatarImage src={user.profilePic} />
+              <AvatarImage src={profile.avatar_url} />
               <AvatarFallback className="bg-primary/20 text-primary">
-                {user.name?.charAt(0) || "U"}
+                {profile.full_name?.charAt(0) || "U"}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.name}</p>
+              <p className="text-sm font-medium truncate">{profile.full_name}</p>
               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
             <Button 
               variant="ghost" 
               size="icon"
-              onClick={logout}
+              onClick={() => window.location.href = '/force-logout.html'}
               aria-label="Logout"
             >
               <LogOut className="h-5 w-5" />
@@ -156,7 +156,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
                     location.pathname === item.href || 
-                    (location.pathname.startsWith(item.href) && item.href !== (user.role === "patient" ? "/patient" : "/therapist"))
+                    (location.pathname.startsWith(item.href) && item.href !== (profile.user_role === "patient" ? "/patient" : "/therapist"))
                       ? "bg-primary/20 text-primary"
                       : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   )}
@@ -172,19 +172,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="p-4 border-t border-border">
             <div className="flex items-center gap-2">
               <Avatar>
-                <AvatarImage src={user.profilePic} />
+                <AvatarImage src={profile.avatar_url} />
                 <AvatarFallback className="bg-primary/20 text-primary">
-                  {user.name?.charAt(0) || "U"}
+                  {profile.full_name?.charAt(0) || "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user.name}</p>
+                <p className="text-sm font-medium truncate">{profile.full_name}</p>
                 <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               </div>
               <Button 
                 variant="ghost" 
                 size="icon"
-                onClick={logout}
+                onClick={() => window.location.href = '/force-logout.html'}
                 aria-label="Logout"
               >
                 <LogOut className="h-5 w-5" />
@@ -230,9 +230,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="md:hidden">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.profilePic} />
+                      <AvatarImage src={profile.avatar_url} />
                       <AvatarFallback className="bg-primary/20 text-primary">
-                        {user.name?.charAt(0) || "U"}
+                        {profile.full_name?.charAt(0) || "U"}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -241,13 +241,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link to={`/${user.role}/profile`}>
+                    <Link to={`/${profile.user_role}/profile`}>
                       <User className="mr-2 h-4 w-4" />
                       Profile
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to={`/${user.role}/chat`}>
+                    <Link to={`/${profile.user_role}/chat`}>
                       <MessageCircle className="mr-2 h-4 w-4" />
                       Messages
                     </Link>
@@ -259,7 +259,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout}>
+                  <DropdownMenuItem onClick={() => window.location.href = '/force-logout.html'}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout
                   </DropdownMenuItem>

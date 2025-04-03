@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { AuthLayout } from "@/components/layouts/AuthLayout";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabaseClient";
+import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -20,6 +21,7 @@ type FormData = z.infer<typeof formSchema>;
 export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState("");
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -30,16 +32,25 @@ export default function ForgotPassword() {
   
   const onSubmit = async (data: FormData) => {
     setLoading(true);
+    setSubmitted(false);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const redirectUrl = window.location.origin + '/reset-password';
       
+      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+        redirectTo: redirectUrl,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      setSubmittedEmail(data.email);
       setSubmitted(true);
-      toast.success("Password reset instructions sent to your email");
-    } catch (error) {
-      toast.error("Failed to send reset instructions. Please try again.");
+      toast.success("Password reset instructions sent!");
+    } catch (error: any) {
       console.error("Password reset error:", error);
+      toast.error(error.message || "Failed to send reset instructions. Please check the email and try again.");
     } finally {
       setLoading(false);
     }
@@ -65,14 +76,14 @@ export default function ForgotPassword() {
       title="Reset your password"
       description={
         submitted
-          ? "Check your email for reset instructions"
+          ? `Check your inbox at ${submittedEmail}`
           : "Enter your email and we'll send you instructions to reset your password"
       }
     >
       {!submitted ? (
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
           <motion.div 
-            className="space-y-4"
+            className="space-y-6"
             variants={container}
             initial="hidden"
             animate="show"  
@@ -86,6 +97,7 @@ export default function ForgotPassword() {
                   placeholder="name@example.com"
                   autoComplete="email"
                   {...form.register("email")}
+                  className="bg-transparent"
                 />
                 {form.formState.errors.email && (
                   <p className="text-sm text-destructive">
@@ -98,10 +110,11 @@ export default function ForgotPassword() {
             <motion.div variants={item}>
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                 disabled={loading}
               >
-                {loading ? "Sending instructions..." : "Send reset instructions"}
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {loading ? "Sending..." : "Send reset instructions"}
               </Button>
             </motion.div>
           </motion.div>
@@ -113,7 +126,7 @@ export default function ForgotPassword() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="rounded-full bg-primary/20 p-6 mx-auto w-24 h-24 flex items-center justify-center">
+          <div className="rounded-full bg-primary/10 p-6 mx-auto w-24 h-24 flex items-center justify-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -131,7 +144,7 @@ export default function ForgotPassword() {
           </div>
           <h3 className="text-xl font-bold">Check your inbox</h3>
           <p className="text-muted-foreground">
-            We've sent password reset instructions to your email address.
+            We've sent password reset instructions to <strong className="text-foreground">{submittedEmail}</strong>.
           </p>
           <Button
             variant="outline"
@@ -139,15 +152,15 @@ export default function ForgotPassword() {
               setSubmitted(false);
               form.reset();
             }}
-            className="mt-4"
+            className="mt-4 border-border hover:bg-muted"
           >
-            Try another email
+            Use a different email
           </Button>
         </motion.div>
       )}
       
-      <div className="mt-6 text-center text-sm">
-        <Link to="/login" className="text-primary hover:underline">
+      <div className="mt-8 text-center text-sm">
+        <Link to="/login" className="font-medium text-primary hover:underline">
           Back to login
         </Link>
       </div>

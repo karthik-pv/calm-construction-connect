@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Logging Out</title>
+    <style>
+        body {
+            background-color: #0a0a0a;
+            color: #f4e2c6;
+            font-family: 'Outfit', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+        }
+        .message {
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        .loader {
+            border: 4px solid rgba(244, 226, 198, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #f4e2c6;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="message">Logging you out completely...</div>
+    <div class="loader"></div>
+
+    <script>
+        // This script runs outside of React to force a complete logout
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Force logout page loaded - running direct logout");
+            
+            // Function to clear all localStorage
+            function clearStorage() {
+                console.log("Clearing all localStorage");
+                localStorage.clear();
+            }
+            
+            // Try to access the Supabase client directly
+            async function forceLogout() {
+                try {
+                    // Load Supabase client from CDN
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+                    script.onload = async function() {
+                        console.log("Supabase loaded, creating client");
+                        
+                        // Get Supabase URL and key from localStorage if available
+                        // or use the ones from your .env file
+                        const supabaseUrl = 'https://jyyffbmluezihdbtwjgi.supabase.co';
+                        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5eWZmYm1sdWV6aWhkYnR3amdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MjA3MDgsImV4cCI6MjA1OTE5NjcwOH0.y2yAZyTcmMatU6AphTvbOyFbGv8ufu77XiDbE_QWEhE';
+                        
+                        // Create a new supabase client
+                        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+                        
+                        console.log("Directly calling Supabase signOut");
+                        await supabase.auth.signOut();
+                        
+                        console.log("Clearing all storage");
+                        clearStorage();
+                        
+                        console.log("Logout complete, redirecting to login");
+                        window.location.href = '/login';
+                    };
+                    
+                    document.head.appendChild(script);
+                } catch (e) {
+                    console.error("Force logout failed:", e);
+                    // Still clear storage and redirect
+                    clearStorage();
+                    window.location.href = '/login';
+                }
+            }
+            
+            // Start the logout process
+            forceLogout();
+            
+            // Fallback - redirect after timeout even if the above fails
+            setTimeout(() => {
+                console.log("Fallback timeout - redirecting to login");
+                clearStorage();
+                window.location.href = '/login';
+            }, 2000);
+        });
+    </script>
+</body>
+</html> 
