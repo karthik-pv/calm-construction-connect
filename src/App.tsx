@@ -15,6 +15,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import RegisterTherapist from "./pages/auth/RegisterTherapist";
 import RegisterPatient from "./pages/auth/RegisterPatient";
 import Logout from "./pages/auth/Logout";
+import RegisterExpert from "./pages/auth/RegisterExpert";
 
 // Patient Pages
 import PatientDashboard from "./pages/patient/Dashboard";
@@ -24,6 +25,7 @@ import PatientChatbot from "./pages/patient/Chatbot";
 import PatientTherapists from "./pages/patient/Therapists";
 import PatientPosts from "./pages/patient/Posts";
 import PatientAnxietyCalmer from "./pages/patient/AnxietyCalmer";
+import PatientExperts from "./pages/patient/Experts";
 
 // Therapist Pages
 import TherapistDashboard from "./pages/therapist/Dashboard";
@@ -38,7 +40,17 @@ import ManageTherapists from "./pages/admin/ManageTherapists";
 // Other Pages
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Check if TeachersPage is imported correctly
+// console.log("TeachersPage imported:", TeachersPage);
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // Background components (assuming they don't need auth context)
 const CosmicBackground = () => {
@@ -70,6 +82,15 @@ const AuthRedirector = () => {
   }
 
   if (isAuthenticated && profile) {
+    // All expert types should redirect to the therapist dashboard
+    const expertRoles = [
+      'therapist', 
+      'relationship_expert', 
+      'financial_expert', 
+      'dating_coach', 
+      'health_wellness_coach'
+    ];
+    
     const homePath = profile.user_role === 'patient' ? '/patient' : '/therapist';
     return <Navigate to={homePath} replace />;
   }
@@ -78,68 +99,81 @@ const AuthRedirector = () => {
   return <Outlet />;
 };
 
-const AppRoutes = () => (
-  <Routes>
-    {/* Auth Routes - Redirect if logged in */}
-    <Route element={<AuthRedirector />}>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/register/therapist" element={<RegisterTherapist />} />
-      <Route path="/register/patient" element={<RegisterPatient />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      {/* Redirect root to login if not logged in */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
-    </Route>
-    
-    {/* Logout Route - Available to authenticated users */}
-    <Route path="/logout" element={<Logout />} />
-    
-    {/* Patient Routes - Protected */}
-    <Route element={<ProtectedRoute allowedRoles={['patient']} />}>
-      <Route path="/patient" element={<PatientDashboard />} />
-      <Route path="/patient/profile" element={<PatientProfile />} />
-      <Route path="/patient/chat" element={<PatientChat />} />
-      <Route path="/patient/chat/:id" element={<PatientChat />} />
-      <Route path="/patient/chatbot" element={<PatientChatbot />} />
-      <Route path="/patient/therapists" element={<PatientTherapists />} />
-      <Route path="/patient/posts" element={<PatientPosts />} />
-      <Route path="/patient/anxiety-calmer" element={<PatientAnxietyCalmer />} />
-    </Route>
-    
-    {/* Therapist Routes - Protected */}
-    <Route element={<ProtectedRoute allowedRoles={['therapist']} />}>
-      <Route path="/therapist" element={<TherapistDashboard />} />
-      <Route path="/therapist/profile" element={<TherapistProfile />} />
-      <Route path="/therapist/chat" element={<TherapistChat />} />
-      <Route path="/therapist/chat/:id" element={<TherapistChat />} />
-      <Route path="/therapist/posts" element={<TherapistPosts />} />
-      <Route path="/therapist/posts/create" element={<CreatePost />} />
-    </Route>
-    
-    {/* Admin Routes - For now accessible to therapists */}
-    <Route element={<ProtectedRoute allowedRoles={['therapist']} />}>
-      <Route path="/admin/therapists" element={<ManageTherapists />} />
-    </Route>
-    
-    {/* 404 Route */}
-    <Route path="*" element={<NotFound />} />
-  </Routes>
-);
+const AppRoutes = () => {
+  // useEffect(() => {
+  //   console.log("Routes mounted, PatientExperts component:", PatientExperts);
+  // }, []);
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <CosmicBackground />
-          <Toaster />
-          <Sonner />
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+  return (
+    <Routes>
+      {/* Auth Routes - Redirect if logged in */}
+      <Route element={<AuthRedirector />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/register/therapist" element={<RegisterTherapist />} />
+        <Route path="/register/patient" element={<RegisterPatient />} />
+        <Route path="/register/relationship_expert" element={<RegisterExpert />} />
+        <Route path="/register/financial_expert" element={<RegisterExpert />} />
+        <Route path="/register/dating_coach" element={<RegisterExpert />} />
+        <Route path="/register/health_wellness_coach" element={<RegisterExpert />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        {/* Redirect root to login if not logged in */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+      </Route>
+      
+      {/* Logout Route - Available to authenticated users */}
+      <Route path="/logout" element={<Logout />} />
+      
+      {/* Patient Routes - Protected */}
+      <Route element={<ProtectedRoute allowedRoles={['patient']} />}>
+        <Route path="/patient" element={<PatientDashboard />} />
+        <Route path="/patient/profile" element={<PatientProfile />} />
+        <Route path="/patient/chat" element={<PatientChat />} />
+        <Route path="/patient/chat/:id" element={<PatientChat />} />
+        <Route path="/patient/chatbot" element={<PatientChatbot />} />
+        <Route path="/patient/experts" element={<PatientExperts />} />
+        <Route path="/patient/therapists" element={<Navigate to="/patient/experts" replace />} />
+        <Route path="/patient/posts" element={<PatientPosts />} />
+        <Route path="/patient/anxiety-calmer" element={<PatientAnxietyCalmer />} />
+      </Route>
+      
+      {/* Therapist Routes - Protected */}
+      <Route element={<ProtectedRoute allowedRoles={['therapist', 'relationship_expert', 'financial_expert', 'dating_coach', 'health_wellness_coach']} />}>
+        <Route path="/therapist" element={<TherapistDashboard />} />
+        <Route path="/therapist/profile" element={<TherapistProfile />} />
+        <Route path="/therapist/chat" element={<TherapistChat />} />
+        <Route path="/therapist/chat/:id" element={<TherapistChat />} />
+        <Route path="/therapist/posts" element={<TherapistPosts />} />
+        <Route path="/therapist/posts/create" element={<CreatePost />} />
+      </Route>
+      
+      {/* Admin Routes - For now accessible to all expert types */}
+      <Route element={<ProtectedRoute allowedRoles={['therapist', 'relationship_expert', 'financial_expert', 'dating_coach', 'health_wellness_coach']} />}>
+        <Route path="/admin/therapists" element={<ManageTherapists />} />
+      </Route>
+      
+      {/* 404 Route */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
+
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <CosmicBackground />
+            <Toaster />
+            <Sonner />
+            <AppRoutes />
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

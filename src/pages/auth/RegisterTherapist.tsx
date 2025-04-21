@@ -89,6 +89,19 @@ export default function RegisterTherapist() {
     }
 
     try {
+      // Check if user with this email already exists
+      const { data: checkData, error: checkError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password
+      });
+      
+      // If identities array is empty, the email is already registered
+      if (checkData?.user && checkData.user.identities && checkData.user.identities.length === 0) {
+        toast.error('Email is already in use. Please use a different email address.');
+        return;
+      }
+      
+      // If email is not registered, proceed with registration
       await registerUser(
         {
           email: data.email,

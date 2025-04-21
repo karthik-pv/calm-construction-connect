@@ -28,8 +28,8 @@ export default function Login() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "dummy@gmail.com",
-      password: "password",
+      email: "",
+      password: "",
     },
   });
   
@@ -57,19 +57,6 @@ export default function Login() {
       title="Log in to your account"
       description="Enter your credentials to access the platform"
     >
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Alert className="mb-6 bg-primary/10 text-primary border-primary/20">
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            Use <strong>dummy@gmail.com</strong> with password <strong>password</strong> to log in.
-          </AlertDescription>
-        </Alert>
-      </motion.div>
-
       <Tabs defaultValue="credentials" className="w-full">
         <TabsList className="grid w-full grid-cols-1 mb-4">
           <TabsTrigger value="credentials">Login</TabsTrigger>

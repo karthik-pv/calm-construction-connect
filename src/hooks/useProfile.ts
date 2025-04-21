@@ -68,7 +68,6 @@ export function useProfile() {
       await updateProfile({
         ...profileData,
         avatar_url,
-        user_role: profile?.user_role,
       });
 
       return true;

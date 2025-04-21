@@ -26,7 +26,7 @@ export default function PatientChat() {
   const navigate = useNavigate();
   
   const [newMessage, setNewMessage] = useState("");
-  const [activeTab, setActiveTab] = useState<"chats" | "therapists">("chats");
+  const [activeTab, setActiveTab] = useState<"chats" | "experts">("chats");
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
@@ -38,10 +38,10 @@ export default function PatientChat() {
     error: conversationsError 
   } = useChatConversations();
   
-  // Fetch available therapists
+  // Fetch available experts
   const { 
-    data: availableTherapists = [], 
-    isLoading: therapistsLoading 
+    data: availableExperts = [], 
+    isLoading: expertsLoading 
   } = useAvailableTherapists();
   
   // Fetch messages for current conversation
@@ -58,7 +58,7 @@ export default function PatientChat() {
   const markMessagesAsRead = useMarkMessagesAsRead();
   
   // Current conversation partner details
-  const currentPartner = id ? [...conversations, ...availableTherapists].find(c => c.id === id) : null;
+  const currentPartner = id ? [...conversations, ...availableExperts].find(c => c.id === id) : null;
   
   // Effect to scroll to bottom when messages change
   useEffect(() => {
@@ -85,7 +85,7 @@ export default function PatientChat() {
       setActiveTab("chats");
     } else if (conversations.length === 0 && !conversationsLoading) {
       // If we have no conversations, default to the therapists tab
-      setActiveTab("therapists");
+      setActiveTab("experts");
     }
   }, [id, conversations.length, conversationsLoading]);
   
@@ -116,9 +116,9 @@ export default function PatientChat() {
     }
   };
   
-  // Start a new conversation with a therapist
-  const startConversation = (therapistId: string) => {
-    navigate(`/patient/chat/${therapistId}`);
+  // Start a new conversation with an expert
+  const startConversation = (expertId: string) => {
+    navigate(`/patient/chat/${expertId}`);
   };
   
   // Go back to the conversation list on mobile
@@ -136,11 +136,11 @@ export default function PatientChat() {
           } w-full md:w-80 md:border-r border-border bg-black/30`}
         >
           <div className="p-4">
-            <PageTitle title="Messages" subtitle="Chat with your therapists" />
+            <PageTitle title="Messages" subtitle="Chat with your experts" />
             
             <Tabs 
               value={activeTab} 
-              onValueChange={(v) => setActiveTab(v as "chats" | "therapists")}
+              onValueChange={(v) => setActiveTab(v as "chats" | "experts")}
               className="mt-4"
             >
               <TabsList className="w-full">
@@ -152,11 +152,11 @@ export default function PatientChat() {
                   My Chats
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="therapists" 
+                  value="experts" 
                   className="flex-1"
-                  disabled={therapistsLoading}
+                  disabled={expertsLoading}
                 >
-                  Find Therapist
+                  Find Expert
                 </TabsTrigger>
               </TabsList>
               
@@ -189,14 +189,14 @@ export default function PatientChat() {
                 ) : conversations.length === 0 ? (
                   <div className="p-4 text-center text-muted-foreground">
                     <p>No conversations yet</p>
-                    <p className="text-sm mt-1">Start chatting with a therapist</p>
+                    <p className="text-sm mt-1">Start chatting with an expert</p>
                     <Button 
                       variant="outline" 
                       size="sm" 
                       className="mt-3"
-                      onClick={() => setActiveTab("therapists")}
+                      onClick={() => setActiveTab("experts")}
                     >
-                      Find a Therapist
+                      Find an Expert
                     </Button>
                   </div>
                 ) : (
@@ -243,8 +243,8 @@ export default function PatientChat() {
                 )}
               </TabsContent>
               
-              <TabsContent value="therapists" className="mt-4">
-                {therapistsLoading ? (
+              <TabsContent value="experts" className="mt-4">
+                {expertsLoading ? (
                   // Loading skeletons
                   <div className="space-y-3 p-2">
                     {[1, 2, 3].map(i => (
@@ -257,41 +257,41 @@ export default function PatientChat() {
                       </div>
                     ))}
                   </div>
-                ) : availableTherapists.length === 0 ? (
+                ) : availableExperts.length === 0 ? (
                   <div className="p-4 text-center text-muted-foreground">
-                    <p>No therapists available</p>
+                    <p>No experts available</p>
                     <p className="text-sm mt-1">Please check back later</p>
                     <Button 
                       variant="outline" 
                       size="sm" 
                       className="mt-3"
-                      onClick={() => navigate('/patient/therapists')}
+                      onClick={() => navigate('/patient/experts')}
                     >
-                      View All Therapists
+                      View All Experts
                     </Button>
                   </div>
                 ) : (
                   <ScrollArea className="h-[calc(100vh-12rem)]">
                     <div className="space-y-1 p-2">
-                      {availableTherapists.map(therapist => (
+                      {availableExperts.map(expert => (
                         <div
-                          key={therapist.id}
+                          key={expert.id}
                           className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer"
-                          onClick={() => startConversation(therapist.id)}
+                          onClick={() => startConversation(expert.id)}
                         >
                           <div className="relative">
                             <Avatar>
-                              <AvatarImage src={therapist.profilePic} />
+                              <AvatarImage src={expert.profilePic} />
                               <AvatarFallback>
-                                {therapist.name.charAt(0)}
+                                {expert.name.charAt(0)}
                               </AvatarFallback>
                             </Avatar>
-                            {therapist.online && (
+                            {expert.online && (
                               <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background"></span>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{therapist.name}</p>
+                            <p className="font-medium truncate">{expert.name}</p>
                             <p className="text-sm text-muted-foreground truncate">Start a conversation</p>
                           </div>
                           <Button size="sm" variant="default">
@@ -353,7 +353,7 @@ export default function PatientChat() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => navigate(`/patient/therapists?id=${currentPartner.id}`)}>
+                      <DropdownMenuItem onClick={() => navigate(`/patient/experts?id=${currentPartner.id}`)}>
                         View profile
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -501,7 +501,7 @@ export default function PatientChat() {
                 </div>
                 <h3 className="text-xl font-bold">Select a conversation</h3>
                 <p className="text-muted-foreground mt-2">
-                  Choose a therapist from the list to start chatting or continue a conversation.
+                  Choose an expert from the list to start chatting or continue a conversation.
                 </p>
               </div>
             </div>

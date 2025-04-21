@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Separator } from "@/components/ui/separator";
+import { ProfileCompletionBanner } from "@/components/shared/ProfileCompletionBanner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,7 +32,7 @@ const getNavItems = (role: UserRole): NavItem[] => {
     return [
       { label: "Dashboard", href: "/patient", icon: Home },
       { label: "AI Chatbot", href: "/patient/chatbot", icon: Brain },
-      { label: "Therapists", href: "/patient/therapists", icon: Users },
+      { label: "Experts", href: "/patient/experts", icon: Users },
       { label: "Chat", href: "/patient/chat", icon: MessageCircle },
       { label: "Posts", href: "/patient/posts", icon: FileText },
       { label: "Anxiety Calmer", href: "/patient/anxiety-calmer", icon: Calendar },
@@ -271,6 +272,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
+          {/* Show profile completion banner for experts */}
+          <div className="px-6 pt-6">
+            <ProfileCompletionBanner />
+          </div>
           {children}
         </main>
       </div>

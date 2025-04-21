@@ -16,9 +16,29 @@ import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserRole } from "@/contexts/AuthContext";
+
+// Add a mapping of user roles to default professional titles
+const DEFAULT_TITLES = {
+  'therapist': 'Clinical Psychologist',
+  'relationship_expert': 'Relationship Counselor',
+  'financial_expert': 'Financial Advisor',
+  'dating_coach': 'Dating Coach',
+  'health_wellness_coach': 'Health & Wellness Specialist'
+};
+
+// Add a mapping of expert roles to display names
+const EXPERT_ROLES: Record<string, string> = {
+  'therapist': 'Therapist',
+  'relationship_expert': 'Relationship Expert',
+  'financial_expert': 'Financial Expert',
+  'dating_coach': 'Dating Coach',
+  'health_wellness_coach': 'Health & Wellness Coach'
+};
 
 export default function TherapistProfile() {
-  const { profile } = useAuth();
+  const { profile, updateProfile } = useAuth();
   const { loading, avatarPreview, handleAvatarChange, updateUserProfile, updatePassword } = useProfile();
   
   const [profileData, setProfileData] = useState({
@@ -36,6 +56,7 @@ export default function TherapistProfile() {
     languages: "",
     appointment_fee: "",
     session_duration: "50",
+    user_role: "therapist" as UserRole,
   });
   
   const [availability, setAvailability] = useState({
@@ -86,12 +107,15 @@ export default function TherapistProfile() {
         }
       }
       
+      // Get the appropriate default title based on user role
+      const defaultTitle = profile.user_role ? DEFAULT_TITLES[profile.user_role] || 'Professional Expert' : 'Professional Expert';
+      
       setProfileData({
         full_name: profile.full_name || "",
         email: profile.email || "",
         phone_number: profile.phone_number || "",
         company_name: profile.company_name || "",
-        title: profile.title || "Clinical Psychologist",
+        title: profile.title || defaultTitle,
         bio: profile.bio || "",
         experience_years: profile.experience_years || 0,
         specialization: profile.specialization || "",
@@ -101,6 +125,7 @@ export default function TherapistProfile() {
         languages: profile.languages || "",
         appointment_fee: profile.appointment_fee || "",
         session_duration: profile.session_duration || "50",
+        user_role: profile.user_role || "therapist",
       });
     }
   }, [profile]);
@@ -161,6 +186,10 @@ export default function TherapistProfile() {
     }));
   };
   
+  const handleSelectChange = (name: string, value: string) => {
+    setProfileData(prev => ({ ...prev, [name]: value }));
+  };
+  
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -180,6 +209,7 @@ export default function TherapistProfile() {
       languages: profileData.languages,
       appointment_fee: profileData.appointment_fee,
       session_duration: profileData.session_duration,
+      user_role: profileData.user_role,
     });
     
     if (success) {
@@ -284,18 +314,25 @@ export default function TherapistProfile() {
                       <CardDescription>
                         Update your professional details
                       </CardDescription>
+                      <div className="mt-2 text-sm text-amber-500">
+                        <p>* Required fields must be completed to be visible to patients</p>
+                      </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="full_name">Full Name</Label>
+                          <Label htmlFor="full_name">Full Name <span className="text-destructive">*</span></Label>
                           <Input
                             id="full_name"
                             name="full_name"
                             value={profileData.full_name}
                             onChange={handleInputChange}
                             placeholder="Your full name"
+                            className={!profileData.full_name ? "border-destructive" : ""}
                           />
+                          {!profileData.full_name && (
+                            <p className="text-xs text-destructive">Full name is required</p>
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="email">Email Address</Label>
@@ -317,6 +354,24 @@ export default function TherapistProfile() {
                             onChange={handleInputChange}
                             placeholder="Your phone number"
                           />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="user_role">Expert Type <span className="text-destructive">*</span></Label>
+                          <Select 
+                            value={profileData.user_role} 
+                            onValueChange={(value) => handleSelectChange('user_role', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select your expert type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(EXPERT_ROLES).map(([role, label]) => (
+                                <SelectItem key={role} value={role}>
+                                  {label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="title">Professional Title</Label>
@@ -344,7 +399,7 @@ export default function TherapistProfile() {
                       
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="experience_years">Years of Experience</Label>
+                          <Label htmlFor="experience_years">Years of Experience <span className="text-destructive">*</span></Label>
                           <Input
                             id="experience_years"
                             name="experience_years"
@@ -353,7 +408,11 @@ export default function TherapistProfile() {
                             value={profileData.experience_years}
                             onChange={handleInputChange}
                             placeholder="Years of professional experience"
+                            className={!profileData.experience_years ? "border-destructive" : ""}
                           />
+                          {!profileData.experience_years && (
+                            <p className="text-xs text-destructive">Experience years is required</p>
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="languages">Languages Spoken</Label>
@@ -502,10 +561,13 @@ export default function TherapistProfile() {
                     <CardDescription>
                       Specify the mental health areas you specialize in
                     </CardDescription>
+                    <div className="mt-2 text-sm text-amber-500">
+                      <p>* At least one area of expertise is required to be visible to patients</p>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="add-expertise">Add Expertise</Label>
+                      <Label htmlFor="add-expertise">Add Expertise <span className="text-destructive">*</span></Label>
                       <div className="flex gap-2">
                         <Input
                           id="add-expertise"
@@ -513,6 +575,7 @@ export default function TherapistProfile() {
                           onChange={(e) => setNewExpertise(e.target.value)}
                           onKeyDown={handleKeyPress}
                           placeholder="e.g. Anxiety, Depression, Trauma"
+                          className={profileData.expertise.length === 0 ? "border-destructive" : ""}
                         />
                         <Button 
                           type="button" 
@@ -525,10 +588,10 @@ export default function TherapistProfile() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label>Current Expertise</Label>
+                      <Label>Current Expertise <span className="text-destructive">*</span></Label>
                       <div className="flex flex-wrap gap-2 pt-2">
                         {profileData.expertise.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-destructive">
                             No areas of expertise added yet. Add some above.
                           </p>
                         ) : (

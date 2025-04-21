@@ -1,17 +1,84 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthLayout } from "@/components/layouts/AuthLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { Eye, EyeOff, Upload } from "lucide-react";
+import { Check, ChevronsUpDown, Eye, EyeOff, Upload } from "lucide-react";
 import { motion } from "framer-motion";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
+import { UserRole } from "@/contexts/AuthContext";
+
+// Define expertise options by expert type
+const expertiseOptions = {
+  therapist: [
+    { label: "Anxiety", value: "anxiety" },
+    { label: "Depression", value: "depression" },
+    { label: "Work Stress", value: "work-stress" },
+    { label: "PTSD", value: "ptsd" },
+    { label: "Addiction", value: "addiction" },
+    { label: "Grief", value: "grief" },
+    { label: "Relationship Issues", value: "relationship-issues" },
+    { label: "Trauma", value: "trauma" },
+    { label: "Self-Esteem", value: "self-esteem" },
+    { label: "Anger Management", value: "anger-management" },
+  ],
+  relationship_expert: [
+    { label: "Conflict Resolution", value: "conflict-resolution" },
+    { label: "Family Bonding", value: "family-bonding" },
+    { label: "Communication Strategies", value: "communication-strategies" },
+    { label: "Emotional Stress Management", value: "emotional-stress" },
+    { label: "Separation/Infidelity Support", value: "separation-support" },
+  ],
+  financial_expert: [
+    { label: "Budget Planning", value: "budget-planning" },
+    { label: "Debt Management", value: "debt-management" },
+    { label: "Saving Plans", value: "saving-plans" },
+    { label: "Credit Improvement", value: "credit-improvement" },
+    { label: "Retirement Planning", value: "retirement-planning" },
+  ],
+  dating_coach: [
+    { label: "Confidence Building", value: "confidence-building" },
+    { label: "Online Dating", value: "online-dating" },
+    { label: "Healthy Dating Habits", value: "dating-habits" },
+    { label: "Post-Divorce Support", value: "post-divorce-support" },
+    { label: "Dating Communication", value: "dating-communication" },
+  ],
+  health_wellness_coach: [
+    { label: "Fitness Plans", value: "fitness-plans" },
+    { label: "Nutrition Guidance", value: "nutrition" },
+    { label: "Stress Management", value: "stress-management" },
+    { label: "Sleep Hygiene", value: "sleep-hygiene" },
+    { label: "Substance Use Reduction", value: "substance-reduction" },
+  ],
+};
+
+// Define titles by expert type
+const expertTitles = {
+  therapist: "Therapist",
+  relationship_expert: "Relationship Expert",
+  financial_expert: "Financial Expert",
+  dating_coach: "Dating Coach",
+  health_wellness_coach: "Health & Wellness Coach",
+};
+
+// Define descriptions by expert type
+const expertDescriptions = {
+  therapist: "Join our platform to provide mental health support.",
+  relationship_expert: "Join our platform to help with relationship issues and family dynamics.",
+  financial_expert: "Join our platform to provide financial guidance and planning support.",
+  dating_coach: "Join our platform to help with dating, confidence, and relationship building.",
+  health_wellness_coach: "Join our platform to provide fitness, nutrition, and wellness guidance.",
+};
 
 const formSchema = z.object({
   full_name: z.string().min(2, { message: "Full name is required" }),
@@ -21,13 +88,26 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-export default function RegisterPatient() {
+export default function RegisterExpert() {
   const { register: registerUser, loading } = useAuth();
   const navigate = useNavigate();
+  const { expertType } = useParams<{ expertType: string }>();
   const [showPassword, setShowPassword] = useState(false);
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
-  
+
+  // Validate expert type
+  const validExpertType = expertType as keyof typeof expertiseOptions;
+  const isValidExpertType = Object.keys(expertiseOptions).includes(validExpertType);
+
+  const expertTitle = isValidExpertType 
+    ? expertTitles[validExpertType] 
+    : "Professional";
+
+  const expertDescription = isValidExpertType 
+    ? expertDescriptions[validExpertType] 
+    : "Join our platform to provide expertise.";
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -37,7 +117,7 @@ export default function RegisterPatient() {
     },
   });
   
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setProfileImage(file);
@@ -84,17 +164,21 @@ export default function RegisterPatient() {
         return;
       }
       
-      // If we reach here, the email is not registered yet
+      // Determine the role based on the URL parameter
+      const role = isValidExpertType ? validExpertType as UserRole : 'therapist';
+      
+      // Register the user with the appropriate role
       await registerUser(
         {
           email: data.email,
           full_name: data.full_name,
         },
         data.password,
-        "patient"
+        role
       );
+
     } catch (error) {
-      console.error("Registration submission error:", error);
+      console.error("Expert registration submission error:", error);
     }
   };
 
@@ -115,9 +199,9 @@ export default function RegisterPatient() {
 
   return (
     <AuthLayout 
-      title="Create your Patient Account" 
-      description="Sign up to connect with therapists and resources."
-      maxWidth="md:max-w-lg"
+      title={`Register as a ${expertTitle}`} 
+      description={expertDescription}
+      maxWidth="md:max-w-xl"
     >
       <form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
         <motion.div 
@@ -132,7 +216,7 @@ export default function RegisterPatient() {
               <Input
                 id="full_name"
                 type="text"
-                placeholder="John Doe"
+                placeholder="Dr. Jane Smith"
                 {...form.register("full_name")}
                 className="bg-transparent"
               />
@@ -150,7 +234,7 @@ export default function RegisterPatient() {
               <Input
                 id="email"
                 type="email"
-                placeholder="name@example.com"
+                placeholder="name@practice.com"
                 {...form.register("email")}
                 className="bg-transparent"
               />
@@ -208,7 +292,7 @@ export default function RegisterPatient() {
                   htmlFor="profilePic"
                   className="cursor-pointer flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
                 >
-                  <div className="flex h-10 items-center justify-center rounded-md border border-input bg-transparent px-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                  <div className="flex h-10 items-center justify-center rounded-md border border-input bg-transparent px-4 py-2 text-sm ring-offset-background">
                     <Upload className="h-4 w-4 mr-2" />
                     {profileImage ? profileImage.name : "Choose file"}
                   </div>
@@ -217,7 +301,7 @@ export default function RegisterPatient() {
                   id="profilePic" 
                   type="file" 
                   accept="image/*" 
-                  onChange={handleImageChange}
+                  onChange={handleProfileImageChange}
                   className="hidden"
                 />
               </div>
@@ -230,7 +314,7 @@ export default function RegisterPatient() {
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors duration-300"
               disabled={loading}
             >
-              {loading ? "Registering..." : "Create Account"}
+              {loading ? "Registering..." : `Create ${expertTitle} Account`}
             </Button>
           </motion.div>
         </motion.div>
@@ -243,11 +327,11 @@ export default function RegisterPatient() {
         </Link>
       </div>
       <div className="mt-2 text-center text-sm">
-        <span className="text-muted-foreground">Are you a therapist?</span>{" "}
-        <Link to="/register/therapist" className="font-medium text-primary hover:underline">
+        <span className="text-muted-foreground">Are you a patient?</span>{" "}
+        <Link to="/register/patient" className="font-medium text-primary hover:underline">
           Register here
         </Link>
       </div>
     </AuthLayout>
   );
-}
+} 

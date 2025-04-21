@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { supabase } from '../lib/supabaseClient';
 import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
 
-export type UserRole = 'patient' | 'therapist';
+export type UserRole = 'patient' | 'therapist' | 'relationship_expert' | 'financial_expert' | 'dating_coach' | 'health_wellness_coach';
 
 export interface UserProfile {
   id: string;
@@ -17,6 +17,7 @@ export interface UserProfile {
   specialization?: string;
   experience_years?: number;
   status?: string;
+  expertise_area?: string[];
 }
 
 interface AuthContextType {
@@ -29,6 +30,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   isAuthenticated: boolean;
+  isProfileComplete: boolean;
 }
 
 // Interface for stored credentials
@@ -46,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isProfileComplete, setIsProfileComplete] = useState(true);
   const navigate = useNavigate();
 
   // Function to securely store credentials
@@ -68,6 +71,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error retrieving credentials:', error);
       return null;
     }
+  };
+
+  // Function to check if expert profile is complete
+  const checkProfileCompleteness = (profile: UserProfile): boolean => {
+    // Only check for expert roles
+    const expertRoles: UserRole[] = [
+      'therapist', 
+      'relationship_expert', 
+      'financial_expert', 
+      'dating_coach', 
+      'health_wellness_coach'
+    ];
+    
+    if (!expertRoles.includes(profile.user_role)) {
+      return true; // Non-experts are always "complete"
+    }
+    
+    // Required fields for experts
+    const requiredFields = [
+      'full_name',
+      'specialization',
+      'experience_years',
+    ];
+    
+    // Check if any required field is missing
+    for (const field of requiredFields) {
+      if (!profile[field as keyof UserProfile]) {
+        return false;
+      }
+    }
+    
+    return true;
   };
 
   useEffect(() => {
@@ -149,7 +184,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         toast.error("Error loading user profile.");
         setProfile(null);
       } else if (data) {
-        setProfile(data as UserProfile);
+        const userProfile = data as UserProfile;
+        setProfile(userProfile);
+        
+        // Check if expert profile is complete
+        const complete = checkProfileCompleteness(userProfile);
+        setIsProfileComplete(complete);
+        
+        // If expert and profile incomplete, show notification
+        const expertRoles: UserRole[] = [
+          'therapist', 
+          'relationship_expert', 
+          'financial_expert', 
+          'dating_coach', 
+          'health_wellness_coach'
+        ];
+        
+        if (expertRoles.includes(userProfile.user_role) && !complete) {
+          toast.warning(
+            "Your expert profile is incomplete. Please complete your profile to be visible to patients.", 
+            {
+              duration: 8000,
+              action: {
+                label: "Complete Profile",
+                onClick: () => navigate('/therapist/profile')
+              }
+            }
+          );
+        }
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
@@ -176,15 +238,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Fetch user profile to determine where to navigate
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('user_role')
+          .select('*')
           .eq('id', data.user.id)
           .single();
         
-        // Navigate to the appropriate dashboard based on user role
         if (profileData) {
-          const dashboardPath = profileData.user_role === 'patient' ? '/patient' : '/therapist';
-          // Navigate first
-          navigate(dashboardPath);
+          const userProfile = profileData as UserProfile;
+          
+          // Check if expert profile is complete
+          const expertRoles: UserRole[] = [
+            'therapist', 
+            'relationship_expert', 
+            'financial_expert', 
+            'dating_coach', 
+            'health_wellness_coach'
+          ];
+          
+          const isExpert = expertRoles.includes(userProfile.user_role);
+          const isComplete = checkProfileCompleteness(userProfile);
+          
+          // Set profile completeness state
+          setIsProfileComplete(isComplete);
+          
+          // If expert with incomplete profile, redirect to profile page with notification
+          if (isExpert && !isComplete) {
+            toast.warning("Please complete your expert profile before proceeding", {
+              duration: 8000
+            });
+            navigate('/therapist/profile');
+          } else {
+            // Otherwise navigate to normal dashboard
+            const dashboardPath = userProfile.user_role === 'patient' ? '/patient' : '/therapist';
+            navigate(dashboardPath);
+          }
+          
           // Then trigger a page refresh after a short delay to ensure navigation completes
           setTimeout(() => {
             window.location.reload();
@@ -287,7 +374,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Update profile error:', error.message, error.details);
         toast.error(error.message || 'Failed to update profile');
       } else {
-        setProfile((prev) => ({ ...prev, ...profileUpdate } as UserProfile));
+        const updatedProfile = { ...profile, ...profileUpdate } as UserProfile;
+        setProfile(updatedProfile);
+        
+        // Check if profile is now complete
+        const complete = checkProfileCompleteness(updatedProfile);
+        setIsProfileComplete(complete);
+        
         toast.success('Profile updated successfully');
       }
     } catch (error) {
@@ -310,6 +403,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         updateProfile,
         isAuthenticated: !!session && !!profile,
+        isProfileComplete,
       }}
     >
       {children}

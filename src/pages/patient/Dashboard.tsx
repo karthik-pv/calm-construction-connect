@@ -62,22 +62,22 @@ export default function PatientDashboard() {
           </motion.div>
 
           <motion.div variants={item}>
-            <Link to="/patient/therapists">
+            <Link to="/patient/experts">
               <Card className="h-full bg-black/50 border-border backdrop-blur-md hover:border-primary/50 transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="h-5 w-5 text-primary" />
-                    <span>Find a Therapist</span>
+                    <span>Find an Expert</span>
                   </CardTitle>
                   <CardDescription>
-                    Connect with mental health professionals
+                    Connect with professionals specializing in construction worker well-being
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    Browse therapists specializing in construction worker mental health needs.
+                    Browse experts specializing in construction worker mental health, relationships, finances, and more.
                   </p>
-                  <Button className="w-full mt-4">Browse Therapists</Button>
+                  <Button className="w-full mt-4">Browse Experts</Button>
                 </CardContent>
               </Card>
             </Link>

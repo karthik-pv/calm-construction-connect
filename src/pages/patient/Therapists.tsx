@@ -11,33 +11,34 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, MessageCircle, Star, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { useTherapists } from "@/hooks/useTherapists";
+import { useExperts } from "@/hooks/useExperts";
 import { UserProfile } from "@/contexts/AuthContext";
 
 // Common specializations to use as a fallback when none provided
 const COMMON_SPECIALIZATIONS = ["Anxiety", "Depression", "Stress", "Trauma", "PTSD", "Work-Life Balance"];
 
 export default function PatientTherapists() {
-  const { data: therapistData, isLoading, error } = useTherapists();
+  const { data: expertsData, isLoading, error } = useExperts();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
+  const [selectedExpertType, setSelectedExpertType] = useState<string | null>(null);
   
-  // Process the therapist data to handle missing fields and standardize format
-  const processTherapistData = (therapists: UserProfile[] | undefined) => {
-    if (!therapists || therapists.length === 0) return [];
+  // Process the expert data to handle missing fields and standardize format
+  const processExpertsData = (experts: UserProfile[] | undefined) => {
+    if (!experts || experts.length === 0) return [];
     
-    return therapists.map(therapist => {
+    return experts.map(expert => {
       // Parse specialization string to array if it exists, or use default
       let specialties: string[] = [];
-      if (therapist.specialization) {
+      if (expert.specialization) {
         try {
           // Try to parse if it's stored as JSON string
-          specialties = typeof therapist.specialization === 'string' && therapist.specialization.includes(',') 
-            ? therapist.specialization.split(',').map(s => s.trim())
-            : [therapist.specialization.trim()];
+          specialties = typeof expert.specialization === 'string' && expert.specialization.includes(',') 
+            ? expert.specialization.split(',').map(s => s.trim())
+            : [expert.specialization.trim()];
         } catch {
-          specialties = [therapist.specialization];
+          specialties = [expert.specialization];
         }
       } else {
         // Assign random specialties as fallback
@@ -45,36 +46,53 @@ export default function PatientTherapists() {
       }
       
       return {
-        id: therapist.id,
-        name: therapist.full_name || 'Anonymous Therapist',
-        profilePic: therapist.avatar_url || '', 
+        id: expert.id,
+        name: expert.full_name || 'Anonymous Expert',
+        profilePic: expert.avatar_url || '', 
         specialties,
-        experience: therapist.experience_years || 0,
-        bio: 'Professional therapist specialized in mental health support for construction workers.',
-        status: therapist.status || 'active'
+        experience: expert.experience_years || 0,
+        bio: `Professional ${expert.user_role.replace('_', ' ')} specialized in worker support.`,
+        status: expert.status || 'active',
+        expertType: expert.user_role
       };
     });
   };
   
-  const therapists = processTherapistData(therapistData);
+  const experts = processExpertsData(expertsData);
   
   // Get unique specialties for filter
   const allSpecialties = Array.from(
     new Set(
-      therapists.flatMap(therapist => therapist.specialties)
+      experts.flatMap(expert => expert.specialties)
     )
   ).sort();
   
-  // Filter therapists based on search and filters
-  const filteredTherapists = therapists.filter(therapist => {
+  // Get unique expert types for filter
+  const expertTypes = Array.from(
+    new Set(
+      experts.map(expert => expert.expertType)
+    )
+  ).sort();
+  
+  // Expert type display names
+  const expertTypeDisplayNames: {[key: string]: string} = {
+    'therapist': 'Therapist',
+    'relationship_expert': 'Relationship Expert',
+    'financial_expert': 'Financial Expert',
+    'dating_coach': 'Dating Coach',
+    'health_wellness_coach': 'Health & Wellness Coach'
+  };
+  
+  // Filter experts based on search and filters
+  const filteredExperts = experts.filter(expert => {
     // Filter by search term
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      const nameMatch = therapist.name.toLowerCase().includes(searchLower);
-      const specialtiesMatch = therapist.specialties.some(s => 
+      const nameMatch = expert.name.toLowerCase().includes(searchLower);
+      const specialtiesMatch = expert.specialties.some(s => 
         s.toLowerCase().includes(searchLower)
       );
-      const bioMatch = therapist.bio.toLowerCase().includes(searchLower);
+      const bioMatch = expert.bio.toLowerCase().includes(searchLower);
       
       if (!(nameMatch || specialtiesMatch || bioMatch)) {
         return false;
@@ -82,21 +100,26 @@ export default function PatientTherapists() {
     }
     
     // Filter by specialty
-    if (selectedSpecialty && !therapist.specialties.includes(selectedSpecialty)) {
+    if (selectedSpecialty && !expert.specialties.includes(selectedSpecialty)) {
+      return false;
+    }
+    
+    // Filter by expert type
+    if (selectedExpertType && expert.expertType !== selectedExpertType) {
       return false;
     }
     
     // Filter by tab
-    if (activeTab === "available" && therapist.status !== 'active') {
+    if (activeTab === "available" && expert.status !== 'active') {
       return false;
     }
     
     return true;
   });
   
-  const handleContactTherapist = (therapistId: string) => {
+  const handleContactExpert = (expertId: string) => {
     // In a real app, this would initiate a chat or consultation request
-    toast.success("Request sent! The therapist will respond shortly.");
+    toast.success("Request sent! The expert will respond shortly.");
   };
   
   const container = {
@@ -120,7 +143,7 @@ export default function PatientTherapists() {
       <DashboardLayout>
         <div className="p-6 h-[calc(100vh-3.5rem)] flex flex-col items-center justify-center">
           <div className="mindful-loader mb-4"></div>
-          <p className="text-foreground">Loading therapists...</p>
+          <p className="text-foreground">Loading experts...</p>
         </div>
       </DashboardLayout>
     );
@@ -133,7 +156,7 @@ export default function PatientTherapists() {
         <div className="p-6 h-[calc(100vh-3.5rem)] flex flex-col items-center justify-center">
           <div className="bg-destructive/20 p-4 rounded-lg mb-4 flex items-center">
             <Info className="h-6 w-6 text-destructive mr-2" />
-            <p className="text-destructive">Failed to load therapists. Please try again later.</p>
+            <p className="text-destructive">Failed to load experts. Please try again later.</p>
           </div>
           <Button onClick={() => window.location.reload()}>Retry</Button>
         </div>
@@ -141,14 +164,14 @@ export default function PatientTherapists() {
     );
   }
 
-  // Show empty state if no therapists found
-  if (therapists.length === 0) {
+  // Show empty state if no experts found
+  if (experts.length === 0) {
     return (
       <DashboardLayout>
         <div className="p-6 space-y-6">
-          <PageTitle title="Find a Therapist" subtitle="Connect with mental health professionals specializing in construction worker well-being" />
+          <PageTitle title="Find an Expert" subtitle="Connect with professionals specializing in construction worker well-being" />
           <div className="flex flex-col items-center justify-center p-8 bg-black/30 rounded-lg">
-            <p className="mb-4 text-muted-foreground">No therapists are currently available.</p>
+            <p className="mb-4 text-muted-foreground">No experts are currently available.</p>
             <Button onClick={() => window.location.reload()}>Refresh</Button>
           </div>
         </div>
@@ -159,7 +182,7 @@ export default function PatientTherapists() {
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
-        <PageTitle title="Find a Therapist" subtitle="Connect with mental health professionals specializing in construction worker well-being" />
+        <PageTitle title="Find an Expert" subtitle="Connect with professionals specializing in construction worker well-being" />
         
         <div className="flex flex-col md:flex-row gap-4">
           <Input
@@ -171,10 +194,30 @@ export default function PatientTherapists() {
           
           <Tabs defaultValue="all" onValueChange={setActiveTab} className="w-full md:w-auto">
             <TabsList>
-              <TabsTrigger value="all">All Therapists</TabsTrigger>
+              <TabsTrigger value="all">All Experts</TabsTrigger>
               <TabsTrigger value="available">Available Now</TabsTrigger>
             </TabsList>
           </Tabs>
+        </div>
+        
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Badge
+            variant={selectedExpertType === null ? "default" : "outline"}
+            className="cursor-pointer"
+            onClick={() => setSelectedExpertType(null)}
+          >
+            All Expert Types
+          </Badge>
+          {expertTypes.map(expertType => (
+            <Badge
+              key={expertType}
+              variant={selectedExpertType === expertType ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => setSelectedExpertType(expertType === selectedExpertType ? null : expertType)}
+            >
+              {expertTypeDisplayNames[expertType] || expertType}
+            </Badge>
+          ))}
         </div>
         
         <div className="flex flex-wrap gap-2 mb-6">
@@ -203,24 +246,26 @@ export default function PatientTherapists() {
           animate="show"
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
-          {filteredTherapists.length > 0 ? (
-            filteredTherapists.map(therapist => (
-              <motion.div key={therapist.id} variants={item}>
+          {filteredExperts.length > 0 ? (
+            filteredExperts.map(expert => (
+              <motion.div key={expert.id} variants={item}>
                 <Card className="h-full flex flex-col bg-black/40 border-border backdrop-blur-md hover:border-primary/30 transition-all duration-300">
                   <CardHeader className="pb-3">
                     <div className="flex items-start gap-4">
                       <Avatar className="h-16 w-16">
-                        <AvatarImage src={therapist.profilePic} />
-                        <AvatarFallback>{therapist.name.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={expert.profilePic} />
+                        <AvatarFallback>{expert.name.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div className="space-y-1">
-                        <CardTitle className="text-lg">{therapist.name}</CardTitle>
-                        <p className="text-sm text-muted-foreground">Mental Health Professional</p>
-                        {therapist.experience > 0 && (
-                          <p className="text-sm">{therapist.experience} years experience</p>
+                        <CardTitle className="text-lg">{expert.name}</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {expertTypeDisplayNames[expert.expertType] || 'Professional'}
+                        </p>
+                        {expert.experience > 0 && (
+                          <p className="text-sm">{expert.experience} years experience</p>
                         )}
                         <p className="text-xs text-primary">
-                          {therapist.status === 'active' ? 'Available now' : 'Currently unavailable'}
+                          {expert.status === 'active' ? 'Available now' : 'Currently unavailable'}
                         </p>
                       </div>
                     </div>
@@ -229,19 +274,19 @@ export default function PatientTherapists() {
                   <CardContent className="flex-1">
                     <div className="space-y-4">
                       <div className="flex flex-wrap gap-1">
-                        {therapist.specialties.map(specialty => (
+                        {expert.specialties.map(specialty => (
                           <Badge key={specialty} variant="secondary">
                             {specialty}
                           </Badge>
                         ))}
                       </div>
                       
-                      <p className="text-sm">{therapist.bio}</p>
+                      <p className="text-sm">{expert.bio}</p>
                     </div>
                   </CardContent>
                   
                   <CardFooter className="flex gap-2 pt-3">
-                    <Link to={`/patient/chat/${therapist.id}`} className="flex-1">
+                    <Link to={`/patient/chat/${expert.id}`} className="flex-1">
                       <Button variant="default" className="w-full">
                         <MessageCircle className="h-4 w-4 mr-2" />
                         Message
@@ -253,7 +298,7 @@ export default function PatientTherapists() {
             ))
           ) : (
             <div className="col-span-full text-center p-8">
-              <p className="text-muted-foreground">No therapists found matching your filters.</p>
+              <p className="text-muted-foreground">No experts found matching your filters.</p>
             </div>
           )}
         </motion.div>

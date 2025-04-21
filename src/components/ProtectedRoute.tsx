@@ -29,7 +29,18 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, ch
 
   if (!allowedRoles.includes(profile.user_role)) {
     // Logged in, but wrong role, redirect to their dashboard or home
+    const expertRoles = [
+      'therapist', 
+      'relationship_expert', 
+      'financial_expert', 
+      'dating_coach', 
+      'health_wellness_coach'
+    ];
+    
+    // If they're any type of expert, send to therapist dashboard
+    const isExpert = expertRoles.includes(profile.user_role);
     const homePath = profile.user_role === 'patient' ? '/patient' : '/therapist';
+    
     return <Navigate to={homePath} replace />;
   }
 

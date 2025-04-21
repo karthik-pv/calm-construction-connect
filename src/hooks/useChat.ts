@@ -427,40 +427,46 @@ export const useMarkMessagesAsRead = () => {
   });
 };
 
-// Hook for fetching all available therapists for a patient to chat with
+// Hook for fetching all available experts for a patient to chat with
 export const useAvailableTherapists = () => {
   const { profile } = useAuth();
   
-  const fetchTherapists = async (): Promise<Conversation[]> => {
+  const fetchExperts = async (): Promise<Conversation[]> => {
     if (!profile?.id || profile.user_role !== 'patient') return [];
 
-    const { data: therapists, error } = await supabase
+    const { data: experts, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('user_role', 'therapist')
+      .in('user_role', [
+        'therapist', 
+        'relationship_expert', 
+        'financial_expert', 
+        'dating_coach', 
+        'health_wellness_coach'
+      ])
       .eq('status', 'active');
 
     if (error) {
-      console.error('Error fetching therapists:', error);
-      toast.error('Failed to load available therapists');
+      console.error('Error fetching experts:', error);
+      toast.error('Failed to load available experts');
       throw error;
     }
 
-    return (therapists || []).map(therapist => ({
-      id: therapist.id,
-      name: therapist.full_name || 'Unnamed Therapist',
-      profilePic: therapist.avatar_url || undefined,
+    return (experts || []).map(expert => ({
+      id: expert.id,
+      name: expert.full_name || 'Unnamed Expert',
+      profilePic: expert.avatar_url || undefined,
       lastMessage: 'Start a conversation',
       lastMessageTime: '',
-      online: therapist.status === 'active',
+      online: expert.status === 'active',
       unreadCount: 0,
-      user_role: 'therapist',
+      user_role: expert.user_role,
     }));
   };
 
   return useQuery<Conversation[], Error>({
-    queryKey: ['available-therapists'],
-    queryFn: fetchTherapists,
+    queryKey: ['available-experts'],
+    queryFn: fetchExperts,
     enabled: !!profile?.id && profile.user_role === 'patient',
   });
 }; 
