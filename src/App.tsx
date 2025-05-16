@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth, AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -27,7 +27,7 @@ import PatientPosts from "./pages/patient/Posts";
 import PatientAnxietyCalmer from "./pages/patient/AnxietyCalmer";
 import PatientExperts from "./pages/patient/Experts";
 
-// Therapist Pages
+// Expert Pages (formerly Therapist Pages)
 import TherapistDashboard from "./pages/therapist/Dashboard";
 import TherapistProfile from "./pages/therapist/Profile";
 import TherapistChat from "./pages/therapist/Chat";
@@ -73,6 +73,44 @@ const CosmicBackground = () => {
   );
 };
 
+// Debug component to help diagnose routing issues
+const RoleDebugger = () => {
+  const { profile, loading } = useAuth();
+  const [showing, setShowing] = useState(true);
+  
+  // Hide after 10 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => setShowing(false), 10000);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  if (!showing || loading) return null;
+  
+  const expertRoles = [
+    'therapist', 
+    'relationship_expert', 
+    'financial_expert', 
+    'dating_coach', 
+    'health_wellness_coach'
+  ];
+  
+  const isExpert = profile && expertRoles.includes(profile.user_role);
+  
+  return (
+    <div className="fixed top-0 right-0 m-4 p-3 bg-black/80 text-white text-xs z-50 rounded border border-primary">
+      <p><strong>User Role:</strong> {profile?.user_role || 'Not logged in'}</p>
+      <p><strong>Is Expert:</strong> {isExpert ? 'Yes' : 'No'}</p>
+      <p><strong>Name:</strong> {profile?.full_name || 'Unknown'}</p>
+      <button 
+        onClick={() => setShowing(false)}
+        className="mt-2 px-2 py-1 bg-primary text-xs rounded"
+      >
+        Dismiss
+      </button>
+    </div>
+  );
+};
+
 // Component to handle redirects for already logged-in users
 const AuthRedirector = () => {
   const { isAuthenticated, profile, loading } = useAuth();
@@ -91,12 +129,41 @@ const AuthRedirector = () => {
       'health_wellness_coach'
     ];
     
-    const homePath = profile.user_role === 'patient' ? '/patient' : '/therapist';
+    const isExpert = expertRoles.includes(profile.user_role);
+    // Make sure all experts go to /therapist
+    const homePath = isExpert ? '/therapist' : '/patient';
+    
     return <Navigate to={homePath} replace />;
   }
 
   // If not loading and not authenticated, allow rendering the auth page (Outlet)
   return <Outlet />;
+};
+
+// Force redirect to the correct dashboard based on role
+const RoleRouter = () => {
+  const { profile, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen w-screen"><div className="mindful-loader"></div></div>;
+  }
+  
+  if (!profile) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  const expertRoles = [
+    'therapist', 
+    'relationship_expert', 
+    'financial_expert', 
+    'dating_coach', 
+    'health_wellness_coach'
+  ];
+  
+  const isExpert = expertRoles.includes(profile.user_role);
+  const homePath = isExpert ? '/therapist' : '/patient';
+  
+  return <Navigate to={homePath} replace />;
 };
 
 const AppRoutes = () => {
@@ -106,6 +173,9 @@ const AppRoutes = () => {
 
   return (
     <Routes>
+      {/* Force routing to correct dashboard */}
+      <Route path="/" element={<RoleRouter />} />
+      
       {/* Auth Routes - Redirect if logged in */}
       <Route element={<AuthRedirector />}>
         <Route path="/login" element={<Login />} />
@@ -118,8 +188,6 @@ const AppRoutes = () => {
         <Route path="/register/health_wellness_coach" element={<RegisterExpert />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        {/* Redirect root to login if not logged in */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
       </Route>
       
       {/* Logout Route - Available to authenticated users */}
@@ -138,7 +206,7 @@ const AppRoutes = () => {
         <Route path="/patient/anxiety-calmer" element={<PatientAnxietyCalmer />} />
       </Route>
       
-      {/* Therapist Routes - Protected */}
+      {/* Expert Routes - Protected (for all expert types) */}
       <Route element={<ProtectedRoute allowedRoles={['therapist', 'relationship_expert', 'financial_expert', 'dating_coach', 'health_wellness_coach']} />}>
         <Route path="/therapist" element={<TherapistDashboard />} />
         <Route path="/therapist/profile" element={<TherapistProfile />} />
@@ -168,6 +236,7 @@ const App = () => {
             <CosmicBackground />
             <Toaster />
             <Sonner />
+            <RoleDebugger />
             <AppRoutes />
           </AuthProvider>
         </BrowserRouter>

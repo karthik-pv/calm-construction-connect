@@ -8,9 +8,10 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Search, Filter } from "lucide-react";
+import { MessageCircle, Search, Filter, Briefcase, Heart, DollarSign, Coffee, Activity } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 // Expert type display names
 const EXPERT_TYPES: Record<string, string> = {
@@ -19,6 +20,15 @@ const EXPERT_TYPES: Record<string, string> = {
   'financial_expert': 'Financial Expert',
   'dating_coach': 'Dating Coach',
   'health_wellness_coach': 'Health & Wellness Coach'
+};
+
+// Icons for each expert type
+const EXPERT_ICONS: Record<string, React.ReactNode> = {
+  'therapist': <Briefcase className="h-5 w-5" />,
+  'relationship_expert': <Heart className="h-5 w-5" />,
+  'financial_expert': <DollarSign className="h-5 w-5" />,
+  'dating_coach': <Coffee className="h-5 w-5" />,
+  'health_wellness_coach': <Activity className="h-5 w-5" />
 };
 
 // Common specializations to use as a fallback when none provided
@@ -145,24 +155,37 @@ export default function PatientExperts() {
           </div>
         </div>
         
-        {/* Role filter section */}
-        <div className="flex flex-wrap gap-2 py-3">
-          <Badge 
-            variant={selectedRole === null ? "default" : "outline"} 
-            className="cursor-pointer"
+        {/* Role filter section - redesigned as bigger blocks */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 py-5">
+          <button
+            className={cn(
+              "flex flex-col items-center justify-center rounded-lg border-2 p-4 transition-all duration-200",
+              "hover:border-primary hover:bg-primary/5",
+              selectedRole === null
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border/50 bg-black/30 text-muted-foreground"
+            )}
             onClick={() => setSelectedRole(null)}
           >
-            All Experts
-          </Badge>
+            <Filter className="h-6 w-6 mb-2" />
+            <span className="text-sm font-medium">All Experts</span>
+          </button>
+          
           {Object.entries(EXPERT_TYPES).map(([role, label]) => (
-            <Badge 
-              key={role} 
-              variant={selectedRole === role ? "default" : "outline"} 
-              className="cursor-pointer"
-              onClick={() => setSelectedRole(role)}
+            <button
+              key={role}
+              className={cn(
+                "flex flex-col items-center justify-center rounded-lg border-2 p-4 transition-all duration-200",
+                "hover:border-primary hover:bg-primary/5",
+                selectedRole === role
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border/50 bg-black/30 text-muted-foreground"
+              )}
+              onClick={() => setSelectedRole(role === selectedRole ? null : role)}
             >
-              {label}
-            </Badge>
+              {EXPERT_ICONS[role] || <Briefcase className="h-6 w-6 mb-2" />}
+              <span className="text-sm font-medium text-center">{label}</span>
+            </button>
           ))}
         </div>
         
@@ -247,11 +270,14 @@ export default function PatientExperts() {
                         
                         <div className="mb-4">
                           <h4 className="text-sm font-medium text-muted-foreground mb-2">Specializations</h4>
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap gap-2">
                             {expert.specialties.map((specialty, idx) => (
-                              <Badge key={`${expert.id}-${idx}`} variant="secondary" className="bg-primary/10">
+                              <span 
+                                key={`${expert.id}-${idx}`}
+                                className="px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium"
+                              >
                                 {specialty}
-                              </Badge>
+                              </span>
                             ))}
                           </div>
                         </div>

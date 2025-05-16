@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { PageTitle } from "@/components/shared/PageTitle";
@@ -8,14 +8,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, MessageCircle, Star, Info } from "lucide-react";
+import { Calendar, MessageCircle, Star, Info, Tag, Briefcase, Heart, DollarSign, Coffee, Activity, Filter, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useExperts } from "@/hooks/useExperts";
 import { UserProfile } from "@/contexts/AuthContext";
+import { COMMON_SPECIALIZATIONS } from "@/constants";
+import { cn } from "@/lib/utils";
 
-// Common specializations to use as a fallback when none provided
-const COMMON_SPECIALIZATIONS = ["Anxiety", "Depression", "Stress", "Trauma", "PTSD", "Work-Life Balance"];
+// Expert type icons mapped to each expert type
+const EXPERT_ICONS: Record<string, React.ReactNode> = {
+  'therapist': <Briefcase className="h-5 w-5" />,
+  'relationship_expert': <Heart className="h-5 w-5" />,
+  'financial_expert': <DollarSign className="h-5 w-5" />,
+  'dating_coach': <Coffee className="h-5 w-5" />,
+  'health_wellness_coach': <Activity className="h-5 w-5" />
+};
 
 export default function PatientTherapists() {
   const { data: expertsData, isLoading, error } = useExperts();
@@ -185,12 +193,15 @@ export default function PatientTherapists() {
         <PageTitle title="Find an Expert" subtitle="Connect with professionals specializing in construction worker well-being" />
         
         <div className="flex flex-col md:flex-row gap-4">
-          <Input
-            placeholder="Search by name, specialty, or keywords..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="md:max-w-md bg-black/30"
-          />
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search by name, specialty, or keywords..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-black/20"
+            />
+          </div>
           
           <Tabs defaultValue="all" onValueChange={setActiveTab} className="w-full md:w-auto">
             <TabsList>
@@ -200,44 +211,76 @@ export default function PatientTherapists() {
           </Tabs>
         </div>
         
-        <div className="flex flex-wrap gap-2 mb-4">
-          <Badge
-            variant={selectedExpertType === null ? "default" : "outline"}
-            className="cursor-pointer"
-            onClick={() => setSelectedExpertType(null)}
-          >
-            All Expert Types
-          </Badge>
-          {expertTypes.map(expertType => (
-            <Badge
-              key={expertType}
-              variant={selectedExpertType === expertType ? "default" : "outline"}
-              className="cursor-pointer"
-              onClick={() => setSelectedExpertType(expertType === selectedExpertType ? null : expertType)}
+        {/* Expert Type Filter - Redesigned with large blocks */}
+        <div className="py-4">
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">Filter by Expert Type</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+            <button
+              className={cn(
+                "flex flex-col items-center justify-center rounded-lg border-2 p-3 transition-all duration-200",
+                "hover:border-primary hover:bg-primary/5",
+                selectedExpertType === null
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border/50 bg-black/30 text-muted-foreground"
+              )}
+              onClick={() => setSelectedExpertType(null)}
             >
-              {expertTypeDisplayNames[expertType] || expertType}
-            </Badge>
-          ))}
+              <Filter className="h-5 w-5 mb-2" />
+              <span className="text-xs font-medium">All Types</span>
+            </button>
+            
+            {expertTypes.map(expertType => (
+              <button
+                key={expertType}
+                className={cn(
+                  "flex flex-col items-center justify-center rounded-lg border-2 p-3 transition-all duration-200",
+                  "hover:border-primary hover:bg-primary/5",
+                  selectedExpertType === expertType
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border/50 bg-black/30 text-muted-foreground"
+                )}
+                onClick={() => setSelectedExpertType(expertType === selectedExpertType ? null : expertType)}
+              >
+                {EXPERT_ICONS[expertType] || <Briefcase className="h-5 w-5 mb-2" />}
+                <span className="text-xs font-medium text-center">{expertTypeDisplayNames[expertType] || expertType}</span>
+              </button>
+            ))}
+          </div>
         </div>
         
-        <div className="flex flex-wrap gap-2 mb-6">
-          <Badge
-            variant={selectedSpecialty === null ? "default" : "outline"}
-            className="cursor-pointer"
-            onClick={() => setSelectedSpecialty(null)}
-          >
-            All Specialties
-          </Badge>
-          {allSpecialties.map(specialty => (
-            <Badge
-              key={specialty}
-              variant={selectedSpecialty === specialty ? "default" : "outline"}
-              className="cursor-pointer"
-              onClick={() => setSelectedSpecialty(specialty === selectedSpecialty ? null : specialty)}
+        {/* Specialties Filter - Redesigned with scrollable area */}
+        <div className="py-4">
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">Filter by Specialty</h3>
+          <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border rounded-lg border-border/30 bg-black/10">
+            <button
+              className={cn(
+                "px-3 py-1.5 rounded-md transition-colors duration-200",
+                "hover:bg-primary/5 hover:text-primary",
+                selectedSpecialty === null
+                  ? "bg-primary/10 text-primary"
+                  : "bg-black/20 text-muted-foreground"
+              )}
+              onClick={() => setSelectedSpecialty(null)}
             >
-              {specialty}
-            </Badge>
-          ))}
+              <span className="text-xs font-medium">All Specialties</span>
+            </button>
+            
+            {allSpecialties.map(specialty => (
+              <button
+                key={specialty}
+                className={cn(
+                  "px-3 py-1.5 rounded-md transition-colors duration-200",
+                  "hover:bg-primary/5 hover:text-primary",
+                  selectedSpecialty === specialty
+                    ? "bg-primary/10 text-primary"
+                    : "bg-black/20 text-muted-foreground"
+                )}
+                onClick={() => setSelectedSpecialty(specialty === selectedSpecialty ? null : specialty)}
+              >
+                <span className="text-xs font-medium">{specialty}</span>
+              </button>
+            ))}
+          </div>
         </div>
         
         <motion.div 
@@ -273,11 +316,14 @@ export default function PatientTherapists() {
                   
                   <CardContent className="flex-1">
                     <div className="space-y-4">
-                      <div className="flex flex-wrap gap-1">
-                        {expert.specialties.map(specialty => (
-                          <Badge key={specialty} variant="secondary">
+                      <div className="flex flex-wrap gap-2">
+                        {expert.specialties.map((specialty, idx) => (
+                          <span 
+                            key={`${expert.id}-${idx}`}
+                            className="px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium"
+                          >
                             {specialty}
-                          </Badge>
+                          </span>
                         ))}
                       </div>
                       
