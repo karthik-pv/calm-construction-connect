@@ -19,15 +19,21 @@ export interface Notification {
     | "system";
 }
 
+/**
+ * Custom hook to manage notifications for the current user
+ */
 export function useNotifications() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [hasInitiallyFetched, setHasInitiallyFetched] = useState(false);
 
   // Get all notifications for the current user
   const notificationsQuery = useQuery({
     queryKey: ["notifications", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
+
+      console.log("Fetching notifications for user:", user.id);
 
       try {
         const { data, error } = await supabase
@@ -41,11 +47,22 @@ export function useNotifications() {
           return []; // Return empty array instead of throwing
         }
 
+        console.log(
+          `Found ${data?.length || 0} notifications in database:`,
+          data
+        );
+
         // Map 'read' to 'is_read' for consistency in the frontend
-        return data.map((item) => ({
+        const mappedData = data.map((item) => ({
           ...item,
           is_read: item.read,
         })) as Notification[];
+
+        if (!hasInitiallyFetched) {
+          setHasInitiallyFetched(true);
+        }
+
+        return mappedData;
       } catch (e) {
         console.error("Unexpected error in notificationsQuery:", e);
         return []; // Return empty array instead of throwing
@@ -54,7 +71,16 @@ export function useNotifications() {
     enabled: !!user?.id,
     retry: 3, // Retry failed requests 3 times
     staleTime: 30000, // Consider data fresh for 30 seconds
+    refetchInterval: 60000, // Automatically check for new notifications every minute
   });
+
+  // Force a refresh when the component mounts
+  useEffect(() => {
+    if (user?.id && !hasInitiallyFetched) {
+      console.log("Initial notification fetch for user:", user.id);
+      notificationsQuery.refetch();
+    }
+  }, [user?.id, notificationsQuery, hasInitiallyFetched]);
 
   // Create a new notification
   const createNotification = useMutation({
@@ -197,6 +223,21 @@ export function useNotifications() {
   const unreadCount =
     notificationsQuery.data?.filter((n) => !n.is_read).length || 0;
 
+  // Log the notification status whenever it changes
+  useEffect(() => {
+    console.log("Current notification state:", {
+      total: notificationsQuery.data?.length || 0,
+      unread: unreadCount,
+      isLoading: notificationsQuery.isLoading,
+      isError: notificationsQuery.isError,
+    });
+  }, [
+    notificationsQuery.data,
+    unreadCount,
+    notificationsQuery.isLoading,
+    notificationsQuery.isError,
+  ]);
+
   return {
     notifications: notificationsQuery.data || [],
     isLoading: notificationsQuery.isLoading,
@@ -207,10 +248,15 @@ export function useNotifications() {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    refetch: notificationsQuery.refetch,
   };
 }
 
-// Function to send notification to a user
+/**
+ * Function to send a notification to a specific user
+ * This is designed to be called from anywhere in the application,
+ * and will reliably store the notification in the database.
+ */
 export async function sendNotification({
   userId,
   title,
@@ -228,81 +274,82 @@ export async function sendNotification({
     | "appointment_rejected"
     | "system";
 }) {
+  const retryCount = 3; // Number of retry attempts
+
+  // Log notification attempt
   console.log(`Attempting to send notification to user ${userId}`, {
     title,
     type,
     message: message.substring(0, 30) + "...",
   });
 
-  try {
-    // Create the basic notification payload with guaranteed fields
-    const notificationData: {
-      user_id: string;
-      title: string;
-      message: string;
-      type:
-        | "appointment_request"
-        | "appointment_confirmed"
-        | "appointment_rejected"
-        | "system";
-      read: boolean;
-      link?: string;
-    } = {
-      user_id: userId,
-      title,
-      message,
-      type,
-      // Use read field directly instead of is_read for the database
-      read: false,
-    };
+  // Create the basic notification payload with guaranteed fields
+  const notificationData: {
+    user_id: string;
+    title: string;
+    message: string;
+    type:
+      | "appointment_request"
+      | "appointment_confirmed"
+      | "appointment_rejected"
+      | "system";
+    read: boolean;
+    link?: string;
+  } = {
+    user_id: userId,
+    title,
+    message,
+    type,
+    read: false,
+  };
 
-    // Only add optional fields if they exist
-    if (link) {
-      notificationData.link = link;
-    }
+  // Only add optional fields if they exist
+  if (link) {
+    notificationData.link = link;
+  }
 
-    // First approach: Insert with select to get the complete record back
-    console.log("Sending notification - first attempt with select");
-    const { data, error } = await supabase
-      .from("notifications")
-      .insert([notificationData])
-      .select()
-      .single();
-
-    if (error) {
-      console.error("First notification attempt failed:", error);
-
-      // Second approach: Insert without select
-      console.log("Sending notification - second attempt without select");
-      const fallbackResult = await supabase
+  // Retry logic with exponential backoff
+  for (let attempt = 1; attempt <= retryCount; attempt++) {
+    try {
+      // First try a simple insert without selecting
+      const { error } = await supabase
         .from("notifications")
         .insert([notificationData]);
 
-      if (fallbackResult.error) {
-        console.error(
-          "Second notification attempt failed:",
-          fallbackResult.error
-        );
+      if (!error) {
+        console.log(`Notification sent successfully on attempt ${attempt}`);
+        return {
+          id: "unknown", // We don't need the ID for most operations
+          user_id: userId,
+          title,
+          message,
+          type,
+          link,
+          is_read: false,
+          created_at: new Date().toISOString(),
+        };
+      }
 
-        // Third approach: Use RPC if available
-        try {
-          console.log("Sending notification - third attempt via direct SQL");
-          const { error: rpcError } = await supabase.rpc(
-            "create_notification",
-            {
-              p_user_id: userId,
-              p_title: title,
-              p_message: message,
-              p_type: type,
-              p_link: link || null,
-            }
-          );
+      // If there was an error, log it and try alternative methods
+      console.error(`Attempt ${attempt} failed:`, error.message);
 
-          if (rpcError) {
-            console.error("Third notification attempt failed:", rpcError);
-            return null;
-          }
+      // If this was a constraint error, we might need to handle it differently
+      if (error.message.includes("violates check constraint")) {
+        console.warn("Constraint violation - check notification type values");
+      }
 
+      // If it's the final attempt, try the RPC function as a last resort
+      if (attempt === retryCount) {
+        console.log("Trying RPC function as final attempt");
+        const { error: rpcError } = await supabase.rpc("create_notification", {
+          p_user_id: userId,
+          p_title: title,
+          p_message: message,
+          p_type: type,
+          p_link: link || null,
+        });
+
+        if (!rpcError) {
           console.log("Notification sent successfully via RPC");
           return {
             id: "unknown",
@@ -314,46 +361,29 @@ export async function sendNotification({
             is_read: false,
             created_at: new Date().toISOString(),
           };
-        } catch (rpcError) {
-          console.error("RPC notification attempt error:", rpcError);
-
-          // Final fallback: Check if the notifications table exists and has proper columns
-          const { data: tableInfo, error: tableError } = await supabase
-            .from("information_schema.columns")
-            .select("column_name, table_name")
-            .eq("table_name", "notifications")
-            .eq("table_schema", "public");
-
-          if (tableError) {
-            console.error("Error checking notifications table:", tableError);
-          } else {
-            console.log("Notifications table structure:", tableInfo);
-          }
-
-          return null;
         }
+
+        console.error("RPC attempt failed:", rpcError);
       }
 
-      console.log("Notification sent successfully without returning data");
-      return {
-        id: "unknown",
-        user_id: userId,
-        title,
-        message,
-        type,
-        link,
-        is_read: false,
-        created_at: new Date().toISOString(),
-      };
-    }
+      // Wait before retrying with exponential backoff
+      if (attempt < retryCount) {
+        const delay = Math.pow(2, attempt) * 100; // 200ms, 400ms, 800ms, etc.
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    } catch (e) {
+      console.error(`Unexpected error on attempt ${attempt}:`, e);
 
-    console.log("Notification sent successfully with complete data");
-    return {
-      ...data,
-      is_read: data.read,
-    };
-  } catch (error) {
-    console.error("Unexpected error in sendNotification:", error);
-    return null;
+      // Wait before retrying
+      if (attempt < retryCount) {
+        const delay = Math.pow(2, attempt) * 100;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
   }
+
+  // If we've exhausted all retries, log the failure but don't throw
+  // This ensures that even if notifications fail, other operations can continue
+  console.error(`Failed to send notification after ${retryCount} attempts`);
+  return null;
 }

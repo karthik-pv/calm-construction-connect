@@ -179,9 +179,10 @@ export function useBookAppointment() {
         minute: "2-digit",
       });
 
-      // Create notification for therapist
+      // Create notification for therapist - don't block the operation
+      // if notification fails
       try {
-        await sendNotification({
+        sendNotification({
           userId: appointmentData.therapist_id,
           title: "New Appointment Request",
           message: `${
@@ -191,8 +192,9 @@ export function useBookAppointment() {
           }".`,
           link: `/therapist/appointments`,
           type: "appointment_request",
-        });
-        console.log("Therapist notification sent successfully");
+        })
+          .then(() => console.log("Therapist notification sent successfully"))
+          .catch((err) => console.error("Therapist notification error:", err));
       } catch (notificationError) {
         console.error(
           "Failed to send notification to therapist, but appointment was created:",
@@ -202,7 +204,7 @@ export function useBookAppointment() {
 
       // Also send a confirmation notification to the patient
       try {
-        await sendNotification({
+        sendNotification({
           userId: user.id,
           title: "Appointment Request Submitted",
           message: `You have requested an appointment with ${
@@ -210,8 +212,11 @@ export function useBookAppointment() {
           } on ${formattedDate} from ${formattedTime} to ${formattedEndTime}. You'll be notified when it's confirmed.`,
           link: `/patient/appointments`,
           type: "system",
-        });
-        console.log("Patient confirmation notification sent successfully");
+        })
+          .then(() =>
+            console.log("Patient confirmation notification sent successfully")
+          )
+          .catch((err) => console.error("Patient notification error:", err));
       } catch (notificationError) {
         console.error(
           "Failed to send confirmation notification to patient:",
@@ -331,7 +336,7 @@ export function useUpdateAppointmentStatus() {
       // Get the appointment title for the notification
       const appointmentTitle = appointmentData?.title || "your appointment";
 
-      // Create notification for patient
+      // Create notification for patient - but don't block status update if notification fails
       try {
         let title = "";
         let message = "";
@@ -360,21 +365,27 @@ export function useUpdateAppointmentStatus() {
           notificationType = "system";
         }
 
-        await sendNotification({
+        sendNotification({
           userId: patientId,
           title,
           message,
           link: "/patient/appointments",
           type: notificationType,
-        });
-        console.log(
-          `Patient notification for ${status} appointment sent successfully`
-        );
+        })
+          .then(() =>
+            console.log(
+              `Patient notification for ${status} appointment sent successfully`
+            )
+          )
+          .catch((err) =>
+            console.error(`Error sending patient notification: ${err}`)
+          );
       } catch (notificationError) {
         console.error(
           `Failed to send ${status} notification to patient:`,
           notificationError
         );
+        // Continue with the operation despite notification failure
       }
 
       // Also send a notification to yourself (the therapist) as a confirmation
@@ -393,19 +404,25 @@ export function useUpdateAppointmentStatus() {
           selfMessage = `You have marked the appointment "${appointmentTitle}" on ${appointmentDate} at ${appointmentTime} as completed.`;
         }
 
-        await sendNotification({
+        sendNotification({
           userId: user.id,
           title: selfTitle,
           message: selfMessage,
           link: "/therapist/appointments",
           type: "system",
-        });
-        console.log("Self-confirmation notification sent successfully");
+        })
+          .then(() =>
+            console.log("Self-confirmation notification sent successfully")
+          )
+          .catch((err) =>
+            console.error(`Error sending self notification: ${err}`)
+          );
       } catch (selfNotificationError) {
         console.error(
           "Failed to send self-confirmation notification:",
           selfNotificationError
         );
+        // Continue with the operation despite notification failure
       }
 
       return data;
@@ -514,9 +531,9 @@ export function useCancelAppointment() {
       // Get the appointment title for the notification
       const appointmentTitle = appointmentData?.title || "the appointment";
 
-      // Notify the therapist
+      // Notify the therapist - but don't block cancellation if notification fails
       try {
-        await sendNotification({
+        sendNotification({
           userId: therapistId,
           title: "Appointment Cancelled",
           message: `${
@@ -524,32 +541,44 @@ export function useCancelAppointment() {
           } has cancelled their appointment "${appointmentTitle}" on ${appointmentDate} at ${appointmentTime}.`,
           link: "/therapist/appointments",
           type: "appointment_rejected",
-        });
-        console.log(
-          "Therapist notification for cancellation sent successfully"
-        );
+        })
+          .then(() =>
+            console.log(
+              "Therapist notification for cancellation sent successfully"
+            )
+          )
+          .catch((err) =>
+            console.error(`Error sending therapist notification: ${err}`)
+          );
       } catch (notificationError) {
         console.error(
           "Failed to send cancellation notification to therapist:",
           notificationError
         );
+        // Continue with cancellation despite notification failure
       }
 
       // Also send a confirmation notification to the patient
       try {
-        await sendNotification({
+        sendNotification({
           userId: user.id,
           title: "Appointment Cancellation Confirmed",
           message: `You have cancelled your appointment "${appointmentTitle}" on ${appointmentDate} at ${appointmentTime}.`,
           link: "/patient/appointments",
           type: "system",
-        });
-        console.log("Self-confirmation for cancellation sent successfully");
+        })
+          .then(() =>
+            console.log("Self-confirmation for cancellation sent successfully")
+          )
+          .catch((err) =>
+            console.error(`Error sending self notification: ${err}`)
+          );
       } catch (selfNotificationError) {
         console.error(
           "Failed to send self-confirmation for cancellation:",
           selfNotificationError
         );
+        // Continue with cancellation despite notification failure
       }
 
       return data;

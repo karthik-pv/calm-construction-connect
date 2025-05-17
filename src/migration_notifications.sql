@@ -33,11 +33,55 @@ BEGIN
         
         RAISE NOTICE 'Created notifications table with read column (used instead of is_read)';
     ELSE
-        -- The table exists, check if we need to rename the column
-        -- Note: To avoid breaking existing code, we'll leave the 'read' column in place
-        -- and just ensure it works with the current application code
-        
-        RAISE NOTICE 'Notifications table already exists - will ensure it works with the application code';
+        -- Table exists, now check if it has the correct columns
+        RAISE NOTICE 'Notifications table already exists - checking columns';
+
+        -- Check if the read column exists
+        IF NOT EXISTS (
+            SELECT FROM information_schema.columns
+            WHERE table_schema = 'public'
+            AND table_name = 'notifications'
+            AND column_name = 'read'
+        ) THEN
+            -- Add the read column if it doesn't exist
+            ALTER TABLE public.notifications ADD COLUMN read boolean DEFAULT false NOT NULL;
+            RAISE NOTICE 'Added missing read column to notifications table';
+        ELSE
+            RAISE NOTICE 'Read column already exists';
+        END IF;
+
+        -- Check if type column has the correct constraint
+        BEGIN
+            -- This will throw an error if there's a problem with the check constraint
+            INSERT INTO public.notifications(id, user_id, title, message, type, read) 
+            VALUES (
+                uuid_generate_v4(), 
+                '00000000-0000-0000-0000-000000000000',
+                'Test notification',
+                'This is a test to verify the type constraint',
+                'appointment_request',
+                false
+            );
+            
+            -- Clean up the test record
+            DELETE FROM public.notifications 
+            WHERE user_id = '00000000-0000-0000-0000-000000000000' 
+            AND title = 'Test notification';
+            
+            RAISE NOTICE 'Type constraint seems valid';
+        EXCEPTION WHEN check_violation THEN
+            -- Drop and recreate the type constraint
+            BEGIN
+                ALTER TABLE public.notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
+                ALTER TABLE public.notifications ADD CONSTRAINT notifications_type_check 
+                    CHECK (type IN ('appointment_request', 'appointment_confirmed', 'appointment_rejected', 'system'));
+                RAISE NOTICE 'Fixed type constraint';
+            EXCEPTION WHEN OTHERS THEN
+                RAISE NOTICE 'Error fixing type constraint: %', SQLERRM;
+            END;
+        WHEN OTHERS THEN
+            RAISE NOTICE 'Error testing type constraint: %', SQLERRM;
+        END;
     END IF;
     
     -- Create a stored procedure for creating notifications (as a fallback)
@@ -67,5 +111,12 @@ BEGIN
     $$ LANGUAGE plpgsql SECURITY DEFINER;
     
     RAISE NOTICE 'Created notification helper function';
+
+    -- List existing notifications to verify they exist
+    RAISE NOTICE 'Listing existing notifications:';
+    FOR r IN (SELECT id, user_id, title, created_at, read FROM notifications LIMIT 10) LOOP
+        RAISE NOTICE 'ID: %, User: %, Title: %, Date: %, Read: %', 
+            r.id, r.user_id, r.title, r.created_at, r.read;
+    END LOOP;
 END
 $$; 
