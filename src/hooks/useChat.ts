@@ -36,6 +36,7 @@ export interface Conversation {
   profilePic?: string;
   lastMessage: string;
   lastMessageTime: string;
+  lastMessageSenderId: string; // ID of the user who sent the last message
   online: boolean;
   unreadCount: number;
   user_role?: string;
@@ -159,8 +160,9 @@ export function useChatMessages(partnerId: string | null) {
       return fetchMessages(user.id, partnerId);
     },
     enabled: !!user?.id && !!partnerId, // Only run query if both IDs are present
-    // Optional: Refetch on window focus or interval if needed, but rely on realtime primarily
-    // refetchOnWindowFocus: true,
+    refetchInterval: 3000, // Refetch every 3 seconds to keep messages up to date
+    refetchOnWindowFocus: true, // Refetch when user returns to this window
+    staleTime: 2000, // Consider data stale after 2 seconds to ensure frequent updates
   });
 }
 
@@ -328,7 +330,13 @@ export function useChatSubscription(partnerId: string | null) {
 }
 
 // Hook for fetching chat conversations (unique users the current user has chatted with)
-export const useChatConversations = () => {
+export const useChatConversations = (
+  options: {
+    refetchInterval?: number;
+    refetchOnWindowFocus?: boolean;
+    refetchOnMount?: boolean;
+  } = {}
+) => {
   const { profile } = useAuth();
   const userRole = profile?.user_role;
 
@@ -391,6 +399,7 @@ export const useChatConversations = () => {
           lastMessageTime: lastMessage
             ? formatMessageTime(lastMessage.created_at)
             : "",
+          lastMessageSenderId: lastMessage?.sender_id || "",
           online: user.status === "active",
           unreadCount: unreadCount || 0,
           user_role: user.user_role,
@@ -425,10 +434,12 @@ export const useChatConversations = () => {
   };
 
   return useQuery<Conversation[], Error>({
-    queryKey: ["chat-conversations", profile?.id],
+    queryKey: ["chatConversations", profile?.id],
     queryFn: fetchConversations,
     enabled: !!profile?.id,
-    refetchInterval: 10000, // Refresh conversation list every 10 seconds
+    refetchInterval: options.refetchInterval || 10000, // Default to 10 seconds or use provided option
+    refetchOnWindowFocus: options.refetchOnWindowFocus,
+    refetchOnMount: options.refetchOnMount,
   });
 };
 
@@ -442,29 +453,80 @@ export const useMarkMessagesAsRead = () => {
       if (!profile?.id)
         throw new Error("You must be logged in to mark messages as read");
 
-      const { data, error } = await supabase
-        .from("chat_messages")
-        .update({ read: true })
-        .eq("sender_id", senderId)
-        .eq("receiver_id", profile.id)
-        .eq("read", false)
-        .select();
+      console.log(
+        `Marking messages from ${senderId} as read for ${profile.id}`
+      );
 
-      if (error) throw error;
-      return data;
+      try {
+        // First, check if there are any unread messages to update
+        const { data: unreadMessages, error: checkError } = await supabase
+          .from("chat_messages")
+          .select("id, content")
+          .eq("sender_id", senderId)
+          .eq("receiver_id", profile.id)
+          .eq("read", false);
+
+        if (checkError) {
+          console.error("Error checking unread messages:", checkError);
+          throw checkError;
+        }
+
+        if (!unreadMessages || unreadMessages.length === 0) {
+          console.log("No unread messages found to mark as read");
+          return [];
+        }
+
+        console.log(
+          `Found ${unreadMessages.length} unread messages to mark as read`
+        );
+
+        // Now update the messages
+        const { data, error } = await supabase
+          .from("chat_messages")
+          .update({ read: true })
+          .eq("sender_id", senderId)
+          .eq("receiver_id", profile.id)
+          .eq("read", false)
+          .select();
+
+        if (error) {
+          console.error("Supabase error marking messages as read:", error);
+          throw error;
+        }
+
+        console.log(
+          `Successfully marked ${
+            data?.length || 0
+          } messages as read in the database`
+        );
+        return data;
+      } catch (err) {
+        console.error("Error in markMessagesAsRead mutation:", err);
+        toast.error("Failed to mark messages as read");
+        throw err;
+      }
     },
     onSuccess: (data, senderId) => {
-      // Invalidate and refetch the messages query
+      console.log(`Success callback: Updated ${data?.length || 0} messages`);
+
+      // Invalidate and refetch the messages query for this specific conversation
       queryClient.invalidateQueries({
-        queryKey: ["chat-messages", profile?.id, senderId],
+        queryKey: ["chatMessages", profile?.id, senderId],
       });
-      // Invalidate the conversations list to update unread counts
+
+      // Invalidate the conversations list with the correct key to update unread counts
       queryClient.invalidateQueries({
-        queryKey: ["chat-conversations", profile?.id],
+        queryKey: ["chatConversations", profile?.id],
+      });
+
+      // Force a refetch to ensure UI updates immediately
+      queryClient.refetchQueries({
+        queryKey: ["chatConversations", profile?.id],
       });
     },
     onError: (error) => {
       console.error("Error marking messages as read:", error);
+      toast.error("Failed to mark messages as read");
     },
   });
 };
@@ -500,6 +562,7 @@ export const useAvailableTherapists = () => {
       profilePic: expert.avatar_url || undefined,
       lastMessage: "Start a conversation",
       lastMessageTime: "",
+      lastMessageSenderId: "",
       online: expert.status === "active",
       unreadCount: 0,
       user_role: expert.user_role,

@@ -1,6 +1,12 @@
-
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { motion } from "framer-motion";
 
 interface AuthLayoutProps {
@@ -26,19 +32,25 @@ export function AuthLayout({
         transition={{ duration: 0.5 }}
         className="w-full"
       >
-        <Link 
+        <Link
           to="/"
           className="mx-auto block w-full max-w-[200px] mb-8 text-center"
         >
-          <h1 className="gradient-text text-2xl font-bold">MindBuild</h1>
-          <p className="text-muted-foreground text-sm">Mental health for construction workers</p>
+          <h1 className="gradient-text text-2xl font-bold">Ambitious Care</h1>
+          <p className="text-muted-foreground text-sm">
+            Mental health for construction workers
+          </p>
         </Link>
-        
+
         <Card className={`mx-auto w-full ${maxWidth} glass-card`}>
           <CardHeader>
-            <CardTitle className="text-xl md:text-2xl text-center">{title}</CardTitle>
+            <CardTitle className="text-xl md:text-2xl text-center">
+              {title}
+            </CardTitle>
             {description && (
-              <CardDescription className="text-center">{description}</CardDescription>
+              <CardDescription className="text-center">
+                {description}
+              </CardDescription>
             )}
           </CardHeader>
           <CardContent>{children}</CardContent>

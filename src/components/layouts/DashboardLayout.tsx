@@ -110,7 +110,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 border-r border-border bg-black/50 backdrop-blur-md h-screen sticky top-0 left-0">
         <div className="p-4">
-          <h1 className="text-xl font-bold gradient-text">MindBuild</h1>
+          <h1 className="text-xl font-bold gradient-text">Ambitious Care</h1>
           <p className="text-xs text-muted-foreground">
             Mental health platform
           </p>
@@ -188,7 +188,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           className="w-64 p-0 bg-black/90 backdrop-blur-lg h-screen flex flex-col"
         >
           <div className="p-4 border-b border-border">
-            <h1 className="text-xl font-bold gradient-text">MindBuild</h1>
+            <h1 className="text-xl font-bold gradient-text">Ambitious Care</h1>
             <p className="text-xs text-muted-foreground">
               Mental health platform
             </p>
@@ -271,7 +271,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 </Sheet>
               )}
               <div className="md:hidden">
-                <h1 className="text-xl font-bold gradient-text">MindBuild</h1>
+                <h1 className="text-xl font-bold gradient-text">
+                  Ambitious Care
+                </h1>
               </div>
             </div>
 

@@ -25,7 +25,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   global: {
     headers: {
-      "x-application-name": "mindbuild-app",
+      "x-application-name": "ambitious-care-app",
     },
   },
 });

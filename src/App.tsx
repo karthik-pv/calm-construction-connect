@@ -43,6 +43,7 @@ import TherapistPosts from "./pages/therapist/Posts";
 import CreatePost from "./pages/therapist/CreatePost";
 import TherapistAppointments from "./pages/therapist/Appointments";
 import ManageAvailability from "./pages/therapist/ManageAvailability";
+import TherapistPatientProfile from "./pages/therapist/PatientProfile";
 
 // Admin Pages
 import ManageTherapists from "./pages/admin/ManageTherapists";
@@ -275,6 +276,10 @@ const AppRoutes = () => {
           path="/therapist/availability"
           element={<ManageAvailability />}
         />
+        <Route
+          path="/therapist/patients/:id"
+          element={<TherapistPatientProfile />}
+        />
       </Route>
 
       {/* Admin Routes - For now accessible to all expert types */}
@@ -309,7 +314,6 @@ const App = () => {
             <CosmicBackground />
             <Toaster />
             <Sonner />
-            <RoleDebugger />
             <AppRoutes />
           </AuthProvider>
         </BrowserRouter>

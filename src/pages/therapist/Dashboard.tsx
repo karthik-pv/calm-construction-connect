@@ -43,7 +43,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTherapistAppointments, Appointment } from "@/hooks/useAppointments";
+import { format, parseISO } from "date-fns";
+import { useChatConversations } from "@/hooks/useChat";
 
 // Types for the real data
 interface Patient {
@@ -61,20 +64,6 @@ interface Message {
   created_at: string;
   read: boolean;
   sender?: {
-    full_name?: string;
-    avatar_url?: string;
-  };
-}
-
-interface Appointment {
-  id: string;
-  patient_id: string;
-  expert_id: string;
-  scheduled_at: string;
-  duration_minutes: number;
-  appointment_type: string;
-  notes?: string;
-  patient?: {
     full_name?: string;
     avatar_url?: string;
   };
@@ -117,61 +106,6 @@ function usePatientCount(expertId: string | undefined) {
 
       if (error) throw error;
       return count || 0;
-    },
-    enabled: !!expertId,
-  });
-}
-
-function useAppointmentsThisWeek(expertId: string | undefined) {
-  return useQuery<Appointment[], Error>({
-    queryKey: ["appointmentsWeek", expertId],
-    queryFn: async () => {
-      if (!expertId) return [];
-
-      // Get start and end of current week
-      const now = new Date();
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
-      startOfWeek.setHours(0, 0, 0, 0);
-
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 7); // Next Sunday
-
-      const { data, error } = await supabase
-        .from("appointments")
-        .select(
-          `
-          id,
-          patient_id,
-          expert_id,
-          scheduled_at,
-          duration_minutes,
-          appointment_type,
-          notes,
-          patient:patient_id(full_name, avatar_url)
-        `
-        )
-        .eq("expert_id", expertId)
-        .gte("scheduled_at", startOfWeek.toISOString())
-        .lt("scheduled_at", endOfWeek.toISOString())
-        .order("scheduled_at", { ascending: true });
-
-      if (error) throw error;
-
-      // Transform the data to match the Appointment type
-      const formattedData = (data || []).map((item) => {
-        // Check if patient is an array and handle it accordingly
-        const patientData = Array.isArray(item.patient)
-          ? item.patient[0]
-          : item.patient;
-
-        return {
-          ...item,
-          patient: patientData,
-        };
-      });
-
-      return formattedData;
     },
     enabled: !!expertId,
   });
@@ -241,53 +175,6 @@ function useRecentMessages(expertId: string | undefined) {
   });
 }
 
-function usePatientIssueDistribution(expertId: string | undefined) {
-  return useQuery<{ name: string; value: number }[], Error>({
-    queryKey: ["patientIssues", expertId],
-    queryFn: async () => {
-      if (!expertId) return [];
-
-      // This is a simplified implementation - in a real app, you would have a proper
-      // data structure for tracking patient issues
-
-      // For now, we'll use a mock implementation that checks patient profiles' specialization field
-      // Get all patients for this expert
-      const { data: patientRelations, error: relationsError } = await supabase
-        .from("expert_client")
-        .select("client_id")
-        .eq("expert_id", expertId);
-
-      if (relationsError) throw relationsError;
-      if (!patientRelations || patientRelations.length === 0) return [];
-
-      const patientIds = patientRelations.map((rel) => rel.client_id);
-
-      // Get profiles with issue information
-      const { data: patients, error: patientsError } = await supabase
-        .from("profiles")
-        .select("specialization")
-        .in("id", patientIds);
-
-      if (patientsError) throw patientsError;
-      if (!patients || patients.length === 0) return [];
-
-      // Count issues
-      const issueCount: Record<string, number> = {};
-      patients.forEach((patient) => {
-        const issue = patient.specialization || "Other";
-        issueCount[issue] = (issueCount[issue] || 0) + 1;
-      });
-
-      // Convert to chart format
-      return Object.entries(issueCount).map(([name, value]) => ({
-        name,
-        value,
-      }));
-    },
-    enabled: !!expertId,
-  });
-}
-
 function useUrgentPatientRequests(expertId: string | undefined) {
   return useQuery<UrgentRequest[], Error>({
     queryKey: ["urgentRequests", expertId],
@@ -340,30 +227,6 @@ function useUrgentPatientRequests(expertId: string | undefined) {
   });
 }
 
-function usePatientEngagement(expertId: string | undefined) {
-  return useQuery<
-    { name: string; sessions: number; messages: number }[],
-    Error
-  >({
-    queryKey: ["patientEngagement", expertId],
-    queryFn: async () => {
-      if (!expertId) return [];
-
-      // This would typically come from analytics tracking
-      // For now, we'll return sample data
-      // In a real implementation, you would query this from your database
-
-      return [
-        { name: "Week 1", sessions: 12, messages: 25 },
-        { name: "Week 2", sessions: 15, messages: 32 },
-        { name: "Week 3", sessions: 14, messages: 28 },
-        { name: "Week 4", sessions: 18, messages: 40 },
-      ];
-    },
-    enabled: !!expertId,
-  });
-}
-
 // Colors for charts
 const COLORS = ["#9b87f5", "#7E69AB", "#D6BCFA", "#553C9A", "#805AD5"];
 
@@ -373,22 +236,71 @@ export default function ExpertDashboard() {
   const expertId = user?.id;
   const [timeOfDay, setTimeOfDay] = useState("");
   const [currentTime, setCurrentTime] = useState(new Date());
+  const queryClient = useQueryClient();
 
-  // Use our custom hooks for real data
+  // Use the same appointment hook as the Appointments page
+  const { data: appointments = [], isLoading: loadingAppointments } =
+    useTherapistAppointments();
+
+  // Fetch chat conversations with frequent refresh to ensure unread counts are current
+  const { data: conversations = [], isLoading: loadingConversations } =
+    useChatConversations({
+      refetchInterval: 3000, // More frequent refresh (3 seconds)
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
+    });
+
+  // Force refresh of chat conversations when component mounts
+  useEffect(() => {
+    if (profile?.id) {
+      console.log("Dashboard mounted - refreshing chat conversations");
+      queryClient.invalidateQueries({
+        queryKey: ["chatConversations", profile.id],
+      });
+      queryClient.refetchQueries({
+        queryKey: ["chatConversations", profile.id],
+      });
+    }
+  }, [profile?.id, queryClient]);
+
+  // Calculate number of conversations with unread messages
+  // Only count conversations where the unread messages are from other users, not from the current user
+  const unreadConversationsCount = conversations.filter(
+    (conv) => conv.unreadCount > 0 && conv.lastMessageSenderId !== profile?.id
+  ).length;
+
+  // Other custom hooks remain
   const { data: patientCount = 0, isLoading: loadingPatients } =
     usePatientCount(expertId);
-  const { data: appointments = [], isLoading: loadingAppointments } =
-    useAppointmentsThisWeek(expertId);
-  const { data: unreadCount = 0, isLoading: loadingUnread } =
-    useUnreadMessagesCount(expertId);
   const { data: recentMessages = [], isLoading: loadingMessages } =
     useRecentMessages(expertId);
-  const { data: patientIssues = [], isLoading: loadingIssues } =
-    usePatientIssueDistribution(expertId);
   const { data: urgentRequests = [], isLoading: loadingUrgent } =
     useUrgentPatientRequests(expertId);
-  const { data: patientEngagement = [], isLoading: loadingEngagement } =
-    usePatientEngagement(expertId);
+
+  // Filter appointments by status
+  const pendingAppointments =
+    appointments?.filter((apt) => apt.status === "pending") || [];
+  const confirmedAppointments =
+    appointments?.filter(
+      (apt) =>
+        apt.status === "confirmed" && new Date(apt.start_time) > new Date()
+    ) || [];
+  const todayAppointments =
+    appointments?.filter((apt) => {
+      if (apt.status !== "confirmed") return false;
+      const appointmentDate = new Date(apt.start_time);
+      const today = new Date();
+      return (
+        appointmentDate.getDate() === today.getDate() &&
+        appointmentDate.getMonth() === today.getMonth() &&
+        appointmentDate.getFullYear() === today.getFullYear()
+      );
+    }) || [];
+  const upcomingAppointments =
+    appointments?.filter(
+      (apt) =>
+        apt.status === "confirmed" && new Date(apt.start_time) > new Date()
+    ) || [];
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -404,42 +316,41 @@ export default function ExpertDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  const formatAppointmentTime = (date: Date) => {
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-    const ampm = hours >= 12 ? "PM" : "AM";
-    const formattedHours = hours % 12 || 12;
-    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-    return `${formattedHours}:${formattedMinutes} ${ampm}`;
+  const formatAppointmentDate = (dateString: string) => {
+    try {
+      const date = parseISO(dateString);
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+
+      // Check if appointment is today
+      if (date.toDateString() === today.toDateString()) {
+        return `Today at ${format(date, "h:mm a")}`;
+      }
+
+      // Check if appointment is tomorrow
+      if (date.toDateString() === tomorrow.toDateString()) {
+        return `Tomorrow at ${format(date, "h:mm a")}`;
+      }
+
+      // Otherwise show day of week
+      return `${format(date, "EEEE")} at ${format(date, "h:mm a")}`;
+    } catch (error) {
+      return dateString;
+    }
   };
 
-  const formatAppointmentDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const today = new Date();
-
-    // Check if appointment is today
-    if (date.toDateString() === today.toDateString()) {
-      return `Today at ${formatAppointmentTime(date)}`;
+  const formatAppointmentTime = (
+    startDateString: string,
+    endDateString: string
+  ) => {
+    try {
+      const startDate = parseISO(startDateString);
+      const endDate = parseISO(endDateString);
+      return `${format(startDate, "h:mm a")} - ${format(endDate, "h:mm a")}`;
+    } catch (error) {
+      return `${startDateString} - ${endDateString}`;
     }
-
-    // Check if appointment is tomorrow
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    if (date.toDateString() === tomorrow.toDateString()) {
-      return `Tomorrow at ${formatAppointmentTime(date)}`;
-    }
-
-    // Otherwise show day of week
-    const days = [
-      "Sunday",
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-    ];
-    return `${days[date.getDay()]} at ${formatAppointmentTime(date)}`;
   };
 
   const formatMessageTime = (dateStr: string) => {
@@ -598,16 +509,22 @@ export default function ExpertDashboard() {
                   <CardTitle className="flex items-center gap-2 text-base">
                     <MessageCircle className="h-5 w-5 text-primary" />
                     <span>Messages</span>
-                    {unreadCount > 0 && (
+                    {unreadConversationsCount > 0 && (
                       <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full px-2 py-1">
-                        {unreadCount}
+                        {unreadConversationsCount}
                       </span>
                     )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pb-2">
                   <p className="text-xs text-muted-foreground">
-                    View and respond to client messages
+                    {unreadConversationsCount > 0
+                      ? `${unreadConversationsCount} unread ${
+                          unreadConversationsCount === 1
+                            ? "conversation"
+                            : "conversations"
+                        }`
+                      : "View and respond to client messages"}
                   </p>
                 </CardContent>
                 <CardFooter className="pt-0">
@@ -626,16 +543,20 @@ export default function ExpertDashboard() {
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Calendar className="h-5 w-5 text-primary" />
                     <span>Appointments</span>
-                    {appointments && appointments.length > 0 && (
-                      <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full px-2 py-1">
-                        {appointments.length}
+                    {pendingAppointments.length > 0 && (
+                      <span className="ml-auto bg-yellow-500 text-yellow-950 text-xs rounded-full px-2 py-1">
+                        {pendingAppointments.length}
                       </span>
                     )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pb-2">
                   <p className="text-xs text-muted-foreground">
-                    Manage upcoming appointments
+                    {pendingAppointments.length > 0
+                      ? `${pendingAppointments.length} pending request${
+                          pendingAppointments.length !== 1 ? "s" : ""
+                        }`
+                      : "Manage upcoming appointments"}
                   </p>
                 </CardContent>
                 <CardFooter className="pt-0">
@@ -699,7 +620,6 @@ export default function ExpertDashboard() {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="patients">{getClientNoun()}s</TabsTrigger>
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -750,7 +670,7 @@ export default function ExpertDashboard() {
                         {loadingAppointments ? (
                           <span className="animate-pulse">...</span>
                         ) : (
-                          (appointments && appointments.length) || 0
+                          upcomingAppointments.length || 0
                         )}
                       </div>
                       <div className="p-2 bg-primary/20 text-primary rounded-full">
@@ -758,11 +678,9 @@ export default function ExpertDashboard() {
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {appointments &&
-                        appointments.filter(
-                          (a) => new Date(a.scheduled_at) > new Date()
-                        ).length}{" "}
-                      upcoming
+                      {todayAppointments.length > 0
+                        ? `${todayAppointments.length} today`
+                        : "No appointments today"}
                     </p>
                   </CardContent>
                 </Card>
@@ -778,10 +696,10 @@ export default function ExpertDashboard() {
                   <CardContent>
                     <div className="flex items-center justify-between">
                       <div className="text-2xl font-bold">
-                        {loadingUnread ? (
+                        {loadingConversations ? (
                           <span className="animate-pulse">...</span>
                         ) : (
-                          unreadCount || 0
+                          unreadConversationsCount || 0
                         )}
                       </div>
                       <div className="p-2 bg-amber-500/20 text-amber-500 rounded-full">
@@ -789,8 +707,10 @@ export default function ExpertDashboard() {
                       </div>
                     </div>
                     <p className="text-xs text-amber-500 mt-1">
-                      {unreadCount && unreadCount > 0
-                        ? "Needs attention"
+                      {unreadConversationsCount > 0
+                        ? unreadConversationsCount === 1
+                          ? "1 conversation needs attention"
+                          : `${unreadConversationsCount} conversations need attention`
                         : "All caught up!"}
                     </p>
                   </CardContent>
@@ -902,73 +822,6 @@ export default function ExpertDashboard() {
                     </CardContent>
                   </Card>
                 </motion.div>
-
-                {/* Client Analytics */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <Card className="bg-black/40 border-border backdrop-blur-md">
-                    <CardHeader>
-                      <CardTitle>{getClientNoun()} Engagement</CardTitle>
-                      <CardDescription>
-                        Session attendance and message activity over time
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {loadingEngagement ? (
-                        <div className="flex justify-center items-center py-8">
-                          <div className="mindful-loader"></div>
-                        </div>
-                      ) : patientEngagement && patientEngagement.length > 0 ? (
-                        <div className="h-80">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                              data={patientEngagement}
-                              margin={{
-                                top: 10,
-                                right: 10,
-                                left: 0,
-                                bottom: 20,
-                              }}
-                            >
-                              <CartesianGrid
-                                strokeDasharray="3 3"
-                                opacity={0.2}
-                              />
-                              <XAxis dataKey="name" />
-                              <YAxis />
-                              <Tooltip
-                                contentStyle={{
-                                  backgroundColor: "#1c1c1c",
-                                  borderColor: "#333",
-                                }}
-                              />
-                              <Legend />
-                              <Bar
-                                dataKey="sessions"
-                                name="Sessions"
-                                fill="#9b87f5"
-                                radius={[4, 4, 0, 0]}
-                              />
-                              <Bar
-                                dataKey="messages"
-                                name="Messages"
-                                fill="#553C9A"
-                                radius={[4, 4, 0, 0]}
-                              />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-center py-4">
-                          No engagement data available yet
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
               </div>
 
               {/* Right Column */}
@@ -979,9 +832,16 @@ export default function ExpertDashboard() {
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle>Today's Schedule</CardTitle>
-                        <Button variant="ghost" size="sm" className="gap-1">
-                          <span className="text-xs">View All</span>
-                          <ArrowUpRight className="h-3 w-3" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1"
+                          asChild
+                        >
+                          <Link to="/therapist/appointments">
+                            <span className="text-xs">View All</span>
+                            <ArrowUpRight className="h-3 w-3" />
+                          </Link>
                         </Button>
                       </div>
                     </CardHeader>
@@ -990,8 +850,8 @@ export default function ExpertDashboard() {
                         <div className="flex justify-center items-center py-4">
                           <div className="mindful-loader"></div>
                         </div>
-                      ) : appointments && appointments.length > 0 ? (
-                        appointments.slice(0, 2).map((appointment) => (
+                      ) : todayAppointments.length > 0 ? (
+                        todayAppointments.slice(0, 3).map((appointment) => (
                           <div
                             key={appointment.id}
                             className="flex items-start gap-3 p-3 rounded-lg bg-black/20 border border-border"
@@ -1013,17 +873,76 @@ export default function ExpertDashboard() {
                                 <Clock className="h-3 w-3 mr-1" />
                                 <span>
                                   {formatAppointmentTime(
-                                    new Date(appointment.scheduled_at)
+                                    appointment.start_time,
+                                    appointment.end_time
                                   )}
                                 </span>
                               </div>
                               <p className="text-xs text-muted-foreground mt-1">
-                                {appointment.appointment_type} •{" "}
-                                {appointment.duration_minutes} min
+                                {appointment.title || "Consultation"} •{" "}
+                                {format(
+                                  new Date(appointment.start_time),
+                                  "h:mm a"
+                                )}
                               </p>
                             </div>
                           </div>
                         ))
+                      ) : confirmedAppointments.length > 0 ? (
+                        // If no appointments today, show upcoming ones
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-4">
+                            No appointments today. Showing upcoming:
+                          </p>
+                          {confirmedAppointments
+                            .slice(0, 3)
+                            .map((appointment) => (
+                              <div
+                                key={appointment.id}
+                                className="flex items-start gap-3 p-3 rounded-lg bg-black/20 border border-border mb-3"
+                              >
+                                <Avatar>
+                                  <AvatarImage
+                                    src={appointment.patient?.avatar_url || ""}
+                                  />
+                                  <AvatarFallback>
+                                    {(appointment.patient?.full_name || "A")[0]}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium">
+                                    {appointment.patient?.full_name ||
+                                      `Anonymous ${getClientNoun()}`}
+                                  </p>
+                                  <div className="flex items-center text-sm text-muted-foreground">
+                                    <Calendar className="h-3 w-3 mr-1" />
+                                    <span>
+                                      {formatAppointmentDate(
+                                        appointment.start_time
+                                      )}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {appointment.title || "Consultation"}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      ) : pendingAppointments.length > 0 ? (
+                        // If no confirmed appointments, but there are pending ones
+                        <div>
+                          <p className="text-xs text-yellow-400 mb-4">
+                            No confirmed appointments. You have{" "}
+                            {pendingAppointments.length} pending request
+                            {pendingAppointments.length !== 1 ? "s" : ""}.
+                          </p>
+                          <Button variant="outline" className="w-full" asChild>
+                            <Link to="/therapist/appointments">
+                              Review Pending Requests
+                            </Link>
+                          </Button>
+                        </div>
                       ) : (
                         <p className="text-muted-foreground text-center py-4">
                           No upcoming appointments
@@ -1031,71 +950,13 @@ export default function ExpertDashboard() {
                       )}
                     </CardContent>
                     <CardFooter>
-                      <Button variant="outline" className="w-full">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        View Full Schedule
+                      <Button variant="outline" className="w-full" asChild>
+                        <Link to="/therapist/appointments">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          View Full Schedule
+                        </Link>
                       </Button>
                     </CardFooter>
-                  </Card>
-                </motion.div>
-
-                {/* Client Issues Pie Chart */}
-                <motion.div variants={item}>
-                  <Card className="bg-black/40 border-border backdrop-blur-md">
-                    <CardHeader>
-                      <CardTitle>
-                        {getClientNoun()} {getIssuesLabel()} Distribution
-                      </CardTitle>
-                      <CardDescription>
-                        Common {getIssuesLabel().toLowerCase()} among your{" "}
-                        {getClientNoun().toLowerCase()}s
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {loadingIssues ? (
-                        <div className="flex justify-center items-center py-8">
-                          <div className="mindful-loader"></div>
-                        </div>
-                      ) : patientIssues && patientIssues.length > 0 ? (
-                        <div className="h-64">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={patientIssues}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
-                                fill="#8884d8"
-                                paddingAngle={2}
-                                dataKey="value"
-                                label={({ name, percent }) =>
-                                  `${name} ${(percent * 100).toFixed(0)}%`
-                                }
-                                labelLine={false}
-                              >
-                                {patientIssues.map((entry, index) => (
-                                  <Cell
-                                    key={`cell-${index}`}
-                                    fill={COLORS[index % COLORS.length]}
-                                  />
-                                ))}
-                              </Pie>
-                              <Tooltip
-                                contentStyle={{
-                                  backgroundColor: "#1c1c1c",
-                                  borderColor: "#333",
-                                }}
-                              />
-                            </PieChart>
-                          </ResponsiveContainer>
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-center py-4">
-                          No {getClientNoun().toLowerCase()} data available
-                        </p>
-                      )}
-                    </CardContent>
                   </Card>
                 </motion.div>
 
@@ -1200,28 +1061,140 @@ export default function ExpertDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground py-4">
-                  Calendar and appointment management interface will be
-                  available here.
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                {loadingAppointments ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="mindful-loader"></div>
+                  </div>
+                ) : appointments && appointments.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-2 px-2">Time</th>
+                          <th className="text-left py-2 px-2">
+                            {getClientNoun()}
+                          </th>
+                          <th className="text-left py-2 px-2">Type</th>
+                          <th className="text-left py-2 px-2">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {appointments
+                          .sort((a, b) => {
+                            // Sort by status (pending first), then by date
+                            if (
+                              a.status === "pending" &&
+                              b.status !== "pending"
+                            )
+                              return -1;
+                            if (
+                              a.status !== "pending" &&
+                              b.status === "pending"
+                            )
+                              return 1;
+                            return (
+                              new Date(a.start_time).getTime() -
+                              new Date(b.start_time).getTime()
+                            );
+                          })
+                          .slice(0, 5) // Limit to 5 appointments for the dashboard
+                          .map((appointment) => {
+                            const appointmentDate = new Date(
+                              appointment.start_time
+                            );
+                            const isToday =
+                              appointmentDate.toDateString() ===
+                              new Date().toDateString();
+                            const isPast = appointmentDate < new Date();
 
-          <TabsContent value="analytics">
-            <Card className="bg-black/40 border-border backdrop-blur-md mt-6">
-              <CardHeader>
-                <CardTitle>Performance Analytics</CardTitle>
-                <CardDescription>
-                  Track your practice performance and{" "}
-                  {getClientNoun().toLowerCase()} outcomes
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground py-4">
-                  Detailed analytics dashboard will be available here.
-                </p>
+                            return (
+                              <tr
+                                key={appointment.id}
+                                className="border-b border-border/50 hover:bg-black/30"
+                              >
+                                <td className="py-3 px-2">
+                                  <div className="font-medium">
+                                    {formatAppointmentDate(
+                                      appointment.start_time
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="py-3 px-2">
+                                  <div className="flex items-center gap-2">
+                                    <Avatar className="h-8 w-8">
+                                      <AvatarImage
+                                        src={
+                                          appointment.patient?.avatar_url || ""
+                                        }
+                                      />
+                                      <AvatarFallback>
+                                        {
+                                          (appointment.patient?.full_name ||
+                                            "A")[0]
+                                        }
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span>
+                                      {appointment.patient?.full_name ||
+                                        `Anonymous ${getClientNoun()}`}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-2">
+                                  {appointment.title || "Consultation"}
+                                </td>
+                                <td className="py-3 px-2">
+                                  {appointment.status === "pending" ? (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-300">
+                                      Pending
+                                    </span>
+                                  ) : isPast ? (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-400">
+                                      Completed
+                                    </span>
+                                  ) : isToday ? (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/20 text-primary">
+                                      Today
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-500">
+                                      Upcoming
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">
+                      No appointments scheduled
+                    </p>
+                    <Button className="mt-4" asChild>
+                      <Link to="/therapist/availability">
+                        Manage Your Availability
+                      </Link>
+                    </Button>
+                  </div>
+                )}
               </CardContent>
+              {appointments && appointments.length > 0 && (
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" asChild>
+                    <Link to="/therapist/appointments">
+                      Full Appointment Manager
+                    </Link>
+                  </Button>
+                  <Button variant="outline" asChild>
+                    <Link to="/therapist/availability">
+                      Manage Availability
+                    </Link>
+                  </Button>
+                </CardFooter>
+              )}
             </Card>
           </TabsContent>
         </Tabs>
