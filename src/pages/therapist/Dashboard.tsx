@@ -319,21 +319,21 @@ export default function ExpertDashboard() {
   const formatAppointmentDate = (dateString: string) => {
     try {
       const date = parseISO(dateString);
-    const today = new Date();
+      const today = new Date();
       const tomorrow = new Date(today);
       tomorrow.setDate(today.getDate() + 1);
 
-    // Check if appointment is today
-    if (date.toDateString() === today.toDateString()) {
+      // Check if appointment is today
+      if (date.toDateString() === today.toDateString()) {
         return `Today at ${format(date, "h:mm a")}`;
-    }
+      }
 
-    // Check if appointment is tomorrow
-    if (date.toDateString() === tomorrow.toDateString()) {
+      // Check if appointment is tomorrow
+      if (date.toDateString() === tomorrow.toDateString()) {
         return `Tomorrow at ${format(date, "h:mm a")}`;
-    }
+      }
 
-    // Otherwise show day of week
+      // Otherwise show day of week
       return `${format(date, "EEEE")} at ${format(date, "h:mm a")}`;
     } catch (error) {
       return dateString;
@@ -839,8 +839,8 @@ export default function ExpertDashboard() {
                           asChild
                         >
                           <Link to="/therapist/appointments">
-                          <span className="text-xs">View All</span>
-                          <ArrowUpRight className="h-3 w-3" />
+                            <span className="text-xs">View All</span>
+                            <ArrowUpRight className="h-3 w-3" />
                           </Link>
                         </Button>
                       </div>
@@ -952,8 +952,8 @@ export default function ExpertDashboard() {
                     <CardFooter>
                       <Button variant="outline" className="w-full" asChild>
                         <Link to="/therapist/appointments">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        View Full Schedule
+                          <Calendar className="h-4 w-4 mr-2" />
+                          View Full Schedule
                         </Link>
                       </Button>
                     </CardFooter>

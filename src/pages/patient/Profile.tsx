@@ -1,25 +1,43 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { PageTitle } from "@/components/shared/PageTitle";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, CheckCircle, Eye, EyeOff, Loader2, Upload } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
+import { Camera, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useProfile } from "@/hooks/useProfile";
 
 export default function PatientProfile() {
   const { profile } = useAuth();
-  const { loading, avatarPreview, handleAvatarChange, updateUserProfile, updatePassword } = useProfile();
-  
+  const {
+    avatarPreview,
+    handleAvatarChange,
+    updateUserProfile,
+    updatePassword,
+    loading = false,
+  } = useProfile();
+
+  const [privacy, setPrivacy] = useState({
+    profile_public: false,
+    activity_visible: true,
+  });
+
   const [profileData, setProfileData] = useState({
     full_name: "",
     email: "",
@@ -29,25 +47,16 @@ export default function PatientProfile() {
     emergency_contact: "",
     emergency_phone: "",
   });
-  
-  const [notifications, setNotifications] = useState({
-    email: true,
-    sms: false,
-    app_notifications: true,
-    weekly_report: true,
-    therapist_messages: true,
-    resource_updates: false,
-  });
-  
+
   const [passwordData, setPasswordData] = useState({
     current: "",
     new: "",
     confirm: "",
   });
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
-  
+
   // Initialize profile data from context
   useEffect(() => {
     if (profile) {
@@ -62,51 +71,54 @@ export default function PatientProfile() {
       });
     }
   }, [profile]);
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setProfileData(prev => ({ ...prev, [name]: value }));
+    setProfileData((prev) => ({ ...prev, [name]: value }));
   };
-  
-  const handleNotificationChange = (name: string, checked: boolean) => {
-    setNotifications(prev => ({ ...prev, [name]: checked }));
+
+  const handlePrivacyChange = (name: string, checked: boolean) => {
+    setPrivacy((prev) => ({ ...prev, [name]: checked }));
   };
-  
+
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setPasswordData(prev => ({ ...prev, [name]: value }));
+    setPasswordData((prev) => ({ ...prev, [name]: value }));
   };
-  
+
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const success = await updateUserProfile({
       full_name: profileData.full_name,
+      // Include other fields that exist in UserProfile
       phone_number: profileData.phone_number,
       company_name: profileData.company_name,
       bio: profileData.bio,
       emergency_contact: profileData.emergency_contact,
       emergency_phone: profileData.emergency_phone,
     });
-    
+
     if (success) {
       toast.success("Profile updated successfully");
     }
   };
-  
+
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (passwordData.new !== passwordData.confirm) {
       toast.error("New passwords don't match");
       return;
     }
-    
+
     setPasswordSubmitting(true);
-    
+
     try {
       await updatePassword(passwordData.current, passwordData.new);
-      
+
       // Reset form
       setPasswordData({
         current: "",
@@ -123,15 +135,17 @@ export default function PatientProfile() {
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
-        <PageTitle title="My Profile" subtitle="Manage your account and settings" />
-        
+        <PageTitle
+          title="My Profile"
+          subtitle="Manage your account and settings"
+        />
+
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 md:w-auto md:inline-flex">
+          <TabsList className="grid w-full grid-cols-2 md:w-auto md:inline-flex">
             <TabsTrigger value="profile">Profile Info</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="profile">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -156,16 +170,16 @@ export default function PatientProfile() {
                             {profileData.full_name.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
-                        <label 
+                        <label
                           htmlFor="profile-image"
                           className="absolute bottom-0 right-0 p-1 rounded-full bg-primary hover:bg-primary/80 text-white cursor-pointer"
                         >
                           <Camera className="h-5 w-5" />
                         </label>
-                        <input 
-                          id="profile-image" 
-                          type="file" 
-                          accept="image/*" 
+                        <input
+                          id="profile-image"
+                          type="file"
+                          accept="image/*"
                           onChange={handleAvatarChange}
                           className="hidden"
                         />
@@ -175,7 +189,7 @@ export default function PatientProfile() {
                       </p>
                     </CardContent>
                   </Card>
-                  
+
                   {/* Personal Info Section */}
                   <Card className="bg-black/40 border-border backdrop-blur-md lg:col-span-2">
                     <CardHeader>
@@ -218,7 +232,9 @@ export default function PatientProfile() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="company_name">Construction Company</Label>
+                          <Label htmlFor="company_name">
+                            Construction Company
+                          </Label>
                           <Input
                             id="company_name"
                             name="company_name"
@@ -228,7 +244,7 @@ export default function PatientProfile() {
                           />
                         </div>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="bio">About Me</Label>
                         <Textarea
@@ -240,14 +256,18 @@ export default function PatientProfile() {
                           rows={4}
                         />
                       </div>
-                      
+
                       <Separator className="my-4" />
-                      
+
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold">Emergency Contact</h3>
+                        <h3 className="text-lg font-semibold">
+                          Emergency Contact
+                        </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="emergency_contact">Contact Name</Label>
+                            <Label htmlFor="emergency_contact">
+                              Contact Name
+                            </Label>
                             <Input
                               id="emergency_contact"
                               name="emergency_contact"
@@ -257,7 +277,9 @@ export default function PatientProfile() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="emergency_phone">Contact Phone</Label>
+                            <Label htmlFor="emergency_phone">
+                              Contact Phone
+                            </Label>
                             <Input
                               id="emergency_phone"
                               name="emergency_phone"
@@ -286,7 +308,7 @@ export default function PatientProfile() {
               </form>
             </motion.div>
           </TabsContent>
-          
+
           <TabsContent value="security">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -304,7 +326,9 @@ export default function PatientProfile() {
                   <form onSubmit={handlePasswordSubmit} className="space-y-4">
                     <div className="space-y-4 max-w-md">
                       <div className="space-y-2">
-                        <Label htmlFor="current-password">Current Password</Label>
+                        <Label htmlFor="current-password">
+                          Current Password
+                        </Label>
                         <div className="relative">
                           <Input
                             id="current-password"
@@ -320,14 +344,14 @@ export default function PatientProfile() {
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                           >
                             {showPassword ? (
-                              <EyeOff className="h-4 w-4" />
+                              <span>Hide</span>
                             ) : (
-                              <Eye className="h-4 w-4" />
+                              <span>Show</span>
                             )}
                           </button>
                         </div>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="new-password">New Password</Label>
                         <div className="relative">
@@ -341,9 +365,11 @@ export default function PatientProfile() {
                           />
                         </div>
                       </div>
-                      
+
                       <div className="space-y-2">
-                        <Label htmlFor="confirm-password">Confirm New Password</Label>
+                        <Label htmlFor="confirm-password">
+                          Confirm New Password
+                        </Label>
                         <div className="relative">
                           <Input
                             id="confirm-password"
@@ -355,11 +381,16 @@ export default function PatientProfile() {
                           />
                         </div>
                       </div>
-                      
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
-                        disabled={passwordSubmitting || !passwordData.current || !passwordData.new || !passwordData.confirm}
+
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={
+                          passwordSubmitting ||
+                          !passwordData.current ||
+                          !passwordData.new ||
+                          !passwordData.confirm
+                        }
                       >
                         {passwordSubmitting ? (
                           <>
@@ -373,125 +404,6 @@ export default function PatientProfile() {
                     </div>
                   </form>
                 </CardContent>
-              </Card>
-            </motion.div>
-          </TabsContent>
-          
-          <TabsContent value="notifications">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Card className="bg-black/40 border-border backdrop-blur-md">
-                <CardHeader>
-                  <CardTitle>Notification Preferences</CardTitle>
-                  <CardDescription>
-                    Manage how and when you receive notifications
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-3">
-                    <h3 className="font-medium">Contact Methods</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="email-notifications">Email Notifications</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Receive notifications via email
-                          </p>
-                        </div>
-                        <Switch
-                          id="email-notifications"
-                          checked={notifications.email}
-                          onCheckedChange={(checked) => handleNotificationChange('email', checked)}
-                        />
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="sms-notifications">SMS Notifications</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Receive important alerts via text message
-                          </p>
-                        </div>
-                        <Switch
-                          id="sms-notifications"
-                          checked={notifications.sms}
-                          onCheckedChange={(checked) => handleNotificationChange('sms', checked)}
-                        />
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="app-notifications">In-App Notifications</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Show notifications within the application
-                          </p>
-                        </div>
-                        <Switch
-                          id="app-notifications"
-                          checked={notifications.app_notifications}
-                          onCheckedChange={(checked) => handleNotificationChange('app_notifications', checked)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="space-y-3">
-                    <h3 className="font-medium">Notification Types</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="weekly-report">Weekly Mental Health Report</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Receive weekly summaries of your mental health progress
-                          </p>
-                        </div>
-                        <Switch
-                          id="weekly-report"
-                          checked={notifications.weekly_report}
-                          onCheckedChange={(checked) => handleNotificationChange('weekly_report', checked)}
-                        />
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="therapist-messages">Therapist Messages</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Get notified when your therapist sends you a message
-                          </p>
-                        </div>
-                        <Switch
-                          id="therapist-messages"
-                          checked={notifications.therapist_messages}
-                          onCheckedChange={(checked) => handleNotificationChange('therapist_messages', checked)}
-                        />
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="resource-updates">Resource Updates</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Get notified when new mental health resources are available
-                          </p>
-                        </div>
-                        <Switch
-                          id="resource-updates"
-                          checked={notifications.resource_updates}
-                          onCheckedChange={(checked) => handleNotificationChange('resource_updates', checked)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="justify-end">
-                  <Button type="button">
-                    Save Notification Settings
-                  </Button>
-                </CardFooter>
               </Card>
             </motion.div>
           </TabsContent>

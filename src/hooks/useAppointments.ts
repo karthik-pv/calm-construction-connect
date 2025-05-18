@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { sendNotification } from "./useNotifications";
 
 export interface Appointment {
   id: string;
@@ -179,50 +178,12 @@ export function useBookAppointment() {
         minute: "2-digit",
       });
 
-      // Create notification for therapist - don't block the operation
-      // if notification fails
-      try {
-        sendNotification({
-          userId: appointmentData.therapist_id,
-          title: "New Appointment Request",
-          message: `${
-            patientData?.full_name || "A patient"
-          } has requested an appointment on ${formattedDate} from ${formattedTime} to ${formattedEndTime} for "${
-            appointmentData.title
-          }".`,
-          link: `/therapist/appointments`,
-          type: "appointment_request",
-        })
-          .then(() => console.log("Therapist notification sent successfully"))
-          .catch((err) => console.error("Therapist notification error:", err));
-      } catch (notificationError) {
-        console.error(
-          "Failed to send notification to therapist, but appointment was created:",
-          notificationError
-        );
-      }
-
-      // Also send a confirmation notification to the patient
-      try {
-        sendNotification({
-          userId: user.id,
-          title: "Appointment Request Submitted",
-          message: `You have requested an appointment with ${
-            therapistData?.full_name || "a therapist"
-          } on ${formattedDate} from ${formattedTime} to ${formattedEndTime}. You'll be notified when it's confirmed.`,
-          link: `/patient/appointments`,
-          type: "system",
-        })
-          .then(() =>
-            console.log("Patient confirmation notification sent successfully")
-          )
-          .catch((err) => console.error("Patient notification error:", err));
-      } catch (notificationError) {
-        console.error(
-          "Failed to send confirmation notification to patient:",
-          notificationError
-        );
-      }
+      // Instead of sending notifications, just log the action
+      console.log(
+        `Appointment requested with ${
+          therapistData?.full_name || "therapist"
+        } on ${formattedDate} from ${formattedTime} to ${formattedEndTime}`
+      );
 
       return data;
     },
@@ -240,7 +201,7 @@ export function useBookAppointment() {
 
 // Hook to update appointment status (for therapists)
 export function useUpdateAppointmentStatus() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -248,14 +209,14 @@ export function useUpdateAppointmentStatus() {
       appointmentId,
       status,
       patientId,
-      appointmentDate,
-      appointmentTime,
+      appointmentDateStr,
+      appointmentTimeStr,
     }: {
       appointmentId: string;
       status: "confirmed" | "canceled" | "completed" | "cancelled";
       patientId: string;
-      appointmentDate: string;
-      appointmentTime: string;
+      appointmentDateStr?: string;
+      appointmentTimeStr?: string;
     }) => {
       if (!user?.id) throw new Error("User not authenticated");
 
@@ -333,97 +294,22 @@ export function useUpdateAppointmentStatus() {
         throw new Error(error.message);
       }
 
-      // Get the appointment title for the notification
-      const appointmentTitle = appointmentData?.title || "your appointment";
+      // Get appointment details for logging
+      const formattedDate = appointmentData?.start_time
+        ? new Date(appointmentData.start_time).toLocaleDateString()
+        : "unknown date";
+      const formattedTime = appointmentData?.start_time
+        ? new Date(appointmentData.start_time).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "unknown time";
+      const appointmentTitle = appointmentData?.title || "Appointment";
 
-      // Create notification for patient - but don't block status update if notification fails
-      try {
-        let title = "";
-        let message = "";
-        let notificationType:
-          | "appointment_confirmed"
-          | "appointment_rejected"
-          | "system" = "appointment_confirmed";
-
-        if (status === "confirmed") {
-          title = "Appointment Confirmed";
-          message = `${
-            therapistData?.full_name || "Your therapist"
-          } has confirmed your appointment "${appointmentTitle}" on ${appointmentDate} at ${appointmentTime}.`;
-          notificationType = "appointment_confirmed";
-        } else if (status === "canceled" || status === "cancelled") {
-          title = "Appointment Cancelled";
-          message = `${
-            therapistData?.full_name || "Your therapist"
-          } has cancelled your appointment "${appointmentTitle}" on ${appointmentDate} at ${appointmentTime}.`;
-          notificationType = "appointment_rejected";
-        } else {
-          title = "Appointment Completed";
-          message = `Your appointment "${appointmentTitle}" with ${
-            therapistData?.full_name || "your therapist"
-          } has been marked as completed.`;
-          notificationType = "system";
-        }
-
-        sendNotification({
-          userId: patientId,
-          title,
-          message,
-          link: "/patient/appointments",
-          type: notificationType,
-        })
-          .then(() =>
-            console.log(
-              `Patient notification for ${status} appointment sent successfully`
-            )
-          )
-          .catch((err) =>
-            console.error(`Error sending patient notification: ${err}`)
-          );
-      } catch (notificationError) {
-        console.error(
-          `Failed to send ${status} notification to patient:`,
-          notificationError
-        );
-        // Continue with the operation despite notification failure
-      }
-
-      // Also send a notification to yourself (the therapist) as a confirmation
-      try {
-        let selfTitle = "";
-        let selfMessage = "";
-
-        if (status === "confirmed") {
-          selfTitle = "Appointment Confirmation Sent";
-          selfMessage = `You have confirmed the appointment "${appointmentTitle}" on ${appointmentDate} at ${appointmentTime}.`;
-        } else if (status === "canceled" || status === "cancelled") {
-          selfTitle = "Appointment Cancellation Sent";
-          selfMessage = `You have cancelled the appointment "${appointmentTitle}" on ${appointmentDate} at ${appointmentTime}.`;
-        } else {
-          selfTitle = "Appointment Marked as Completed";
-          selfMessage = `You have marked the appointment "${appointmentTitle}" on ${appointmentDate} at ${appointmentTime} as completed.`;
-        }
-
-        sendNotification({
-          userId: user.id,
-          title: selfTitle,
-          message: selfMessage,
-          link: "/therapist/appointments",
-          type: "system",
-        })
-          .then(() =>
-            console.log("Self-confirmation notification sent successfully")
-          )
-          .catch((err) =>
-            console.error(`Error sending self notification: ${err}`)
-          );
-      } catch (selfNotificationError) {
-        console.error(
-          "Failed to send self-confirmation notification:",
-          selfNotificationError
-        );
-        // Continue with the operation despite notification failure
-      }
+      // Log the status change instead of sending notifications
+      console.log(
+        `Changed appointment "${appointmentTitle}" status to ${status} on ${formattedDate} at ${formattedTime}`
+      );
 
       return data;
     },
@@ -439,27 +325,27 @@ export function useUpdateAppointmentStatus() {
       queryClient.invalidateQueries({ queryKey: ["therapistAppointments"] });
     },
     onError: (error) => {
-      toast.error(`Error updating appointment: ${error.message}`);
+      toast.error(`Error updating appointment status: ${error.message}`);
     },
   });
 }
 
 // Hook to cancel appointment (for patients)
 export function useCancelAppointment() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
       appointmentId,
       therapistId,
-      appointmentDate,
-      appointmentTime,
+      appointmentDateStr,
+      appointmentTimeStr,
     }: {
       appointmentId: string;
       therapistId: string;
-      appointmentDate: string;
-      appointmentTime: string;
+      appointmentDateStr?: string;
+      appointmentTimeStr?: string;
     }) => {
       if (!user?.id) throw new Error("User not authenticated");
 
@@ -528,58 +414,24 @@ export function useCancelAppointment() {
         throw new Error(error.message);
       }
 
-      // Get the appointment title for the notification
+      // Get appointment details for logging
+      const formattedDate = appointmentData?.start_time
+        ? new Date(appointmentData.start_time).toLocaleDateString()
+        : "unknown date";
+      const formattedTime = appointmentData?.start_time
+        ? new Date(appointmentData.start_time).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "unknown time";
       const appointmentTitle = appointmentData?.title || "the appointment";
 
-      // Notify the therapist - but don't block cancellation if notification fails
-      try {
-        sendNotification({
-          userId: therapistId,
-          title: "Appointment Cancelled",
-          message: `${
-            patientData?.full_name || "A patient"
-          } has cancelled their appointment "${appointmentTitle}" on ${appointmentDate} at ${appointmentTime}.`,
-          link: "/therapist/appointments",
-          type: "appointment_rejected",
-        })
-          .then(() =>
-            console.log(
-              "Therapist notification for cancellation sent successfully"
-            )
-          )
-          .catch((err) =>
-            console.error(`Error sending therapist notification: ${err}`)
-          );
-      } catch (notificationError) {
-        console.error(
-          "Failed to send cancellation notification to therapist:",
-          notificationError
-        );
-        // Continue with cancellation despite notification failure
-      }
-
-      // Also send a confirmation notification to the patient
-      try {
-        sendNotification({
-          userId: user.id,
-          title: "Appointment Cancellation Confirmed",
-          message: `You have cancelled your appointment "${appointmentTitle}" on ${appointmentDate} at ${appointmentTime}.`,
-          link: "/patient/appointments",
-          type: "system",
-        })
-          .then(() =>
-            console.log("Self-confirmation for cancellation sent successfully")
-          )
-          .catch((err) =>
-            console.error(`Error sending self notification: ${err}`)
-          );
-      } catch (selfNotificationError) {
-        console.error(
-          "Failed to send self-confirmation for cancellation:",
-          selfNotificationError
-        );
-        // Continue with cancellation despite notification failure
-      }
+      // Log cancellation instead of sending notifications
+      console.log(
+        `Patient ${
+          patientData?.full_name || user.id
+        } canceled appointment "${appointmentTitle}" on ${formattedDate} at ${formattedTime}`
+      );
 
       return data;
     },

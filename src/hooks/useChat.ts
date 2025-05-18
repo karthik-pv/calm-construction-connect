@@ -225,7 +225,7 @@ export function useChatSubscription(partnerId: string | null) {
 
   useEffect(() => {
     if (!user?.id || !partnerId) {
-      // If no active chat, ensure any previous channel is unsubscribed
+      // Clean up channel if it exists
       if (channel) {
         supabase.removeChannel(channel);
         setChannel(null);
@@ -233,50 +233,36 @@ export function useChatSubscription(partnerId: string | null) {
       return;
     }
 
-    // Only create a channel if we don't have one for the current user/partner combo
-    // (This logic might need refinement depending on how partnerId changes)
-    if (
-      channel?.topic === `realtime:public:chat_messages:partner=${partnerId}`
-    ) {
-      return; // Already subscribed to this partner
-    }
-
-    // If switching partners, remove old channel first
+    // Only create new channel if one doesn't exist
     if (channel) {
-      supabase.removeChannel(channel);
+      console.log("Channel already exists, not recreating");
+      return;
     }
 
-    // Create a new channel specific to messages involving the current user
-    // This listens to *all* messages the user sends or receives.
-    // Filtering for the specific partner happens in the callback.
+    console.log(
+      `Setting up realtime subscription for user ${user.id} with partner ${partnerId}`
+    );
+
     const newChannel = supabase
-      .channel(`chat_messages_user_${user.id}`)
-      .on<ChatMessage>(
+      .channel(`chat-${user.id}-${partnerId}`)
+      // Listen for messages sent BY the user
+      .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "chat_messages",
-          // Filter in Supabase for messages involving the current user
-          filter: `sender_id=eq.${user.id}`,
+          filter: `sender_id=eq.${user.id}`, // Filter for messages sent BY me
         },
         async (payload) => {
           console.log("Realtime INSERT received (sent by me):", payload);
-          // Check if the message is for the currently active partner
-          if (payload.new.receiver_id === partnerId) {
-            // Invalidate query to refetch messages for the current chat
-            await queryClient.invalidateQueries({
-              queryKey: ["chatMessages", user.id, partnerId],
-            });
-            // Could also optimistically update here
-          }
-          // Also invalidate chat partners if it's a new chat
           await queryClient.invalidateQueries({
-            queryKey: ["chatPartners", user?.id],
+            queryKey: ["chatMessages", user.id, partnerId],
           });
         }
       )
-      .on<ChatMessage>( // Separate listener for messages received *by* the user
+      // Listen for messages received BY the user
+      .on(
         "postgres_changes",
         {
           event: "INSERT",
@@ -293,8 +279,8 @@ export function useChatSubscription(partnerId: string | null) {
             });
             // Could optimistically update
           } else {
-            // Optional: Show notification for message from inactive chat partner
-            toast(`New message from another chat.`);
+            // Just log for non-active chat partners
+            console.log("Received message from non-active chat partner");
           }
           // Invalidate partners list if it's a new sender
           await queryClient.invalidateQueries({
@@ -308,11 +294,11 @@ export function useChatSubscription(partnerId: string | null) {
         }
         if (status === "CHANNEL_ERROR") {
           console.error("Realtime channel error:", err);
-          toast.error("Chat connection error.");
+          console.error("Chat connection error.");
         }
         if (status === "TIMED_OUT") {
           console.warn("Realtime connection timed out.");
-          toast.warning("Chat connection timed out, attempting to reconnect.");
+          console.warn("Chat connection timed out, attempting to reconnect.");
         }
       });
 
@@ -327,6 +313,10 @@ export function useChatSubscription(partnerId: string | null) {
     };
     // Re-run effect if the active partnerId or user changes
   }, [partnerId, user?.id, queryClient, channel]);
+
+  return {
+    isSubscribed: !!channel,
+  };
 }
 
 // Hook for fetching chat conversations (unique users the current user has chatted with)

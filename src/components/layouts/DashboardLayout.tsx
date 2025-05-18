@@ -6,7 +6,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth, UserRole } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  Bell,
   Calendar,
   FileText,
   Home,
@@ -27,7 +26,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Separator } from "@/components/ui/separator";
 import { ProfileCompletionBanner } from "@/components/shared/ProfileCompletionBanner";
-import { NotificationDropdown } from "@/components/Notification/NotificationDropdown";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -278,8 +276,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
 
             <div className="flex items-center gap-2">
-              <NotificationDropdown />
-
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="md:hidden">

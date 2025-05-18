@@ -1,10 +1,20 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { supabase } from '../lib/supabaseClient';
-import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { supabase } from "../lib/supabaseClient";
+import type {
+  AuthChangeEvent,
+  Session,
+  User as SupabaseUser,
+} from "@supabase/supabase-js";
 
-export type UserRole = 'patient' | 'therapist' | 'relationship_expert' | 'financial_expert' | 'dating_coach' | 'health_wellness_coach';
+export type UserRole =
+  | "patient"
+  | "therapist"
+  | "relationship_expert"
+  | "financial_expert"
+  | "dating_coach"
+  | "health_wellness_coach";
 
 export interface UserProfile {
   id: string;
@@ -18,6 +28,12 @@ export interface UserProfile {
   experience_years?: number;
   status?: string;
   expertise_area?: string[];
+  email?: string;
+  phone_number?: string;
+  company_name?: string;
+  bio?: string;
+  emergency_contact?: string;
+  emergency_phone?: string;
 }
 
 interface AuthContextType {
@@ -26,7 +42,11 @@ interface AuthContextType {
   user: SupabaseUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: { email: string; full_name?: string; }, password: string, role: UserRole) => Promise<void>;
+  register: (
+    userData: { email: string; full_name?: string },
+    password: string,
+    role: UserRole
+  ) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   isAuthenticated: boolean;
@@ -39,7 +59,7 @@ interface StoredCredentials {
   password: string;
 }
 
-const AUTH_STORAGE_KEY = 'calm_construction_auth_creds';
+const AUTH_STORAGE_KEY = "calm_construction_auth_creds";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -57,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const credentials: StoredCredentials = { email, password };
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(credentials));
     } catch (error) {
-      console.error('Error storing credentials:', error);
+      console.error("Error storing credentials:", error);
     }
   };
 
@@ -68,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!storedData) return null;
       return JSON.parse(storedData) as StoredCredentials;
     } catch (error) {
-      console.error('Error retrieving credentials:', error);
+      console.error("Error retrieving credentials:", error);
       return null;
     }
   };
@@ -77,31 +97,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkProfileCompleteness = (profile: UserProfile): boolean => {
     // Only check for expert roles
     const expertRoles: UserRole[] = [
-      'therapist', 
-      'relationship_expert', 
-      'financial_expert', 
-      'dating_coach', 
-      'health_wellness_coach'
+      "therapist",
+      "relationship_expert",
+      "financial_expert",
+      "dating_coach",
+      "health_wellness_coach",
     ];
-    
+
     if (!expertRoles.includes(profile.user_role)) {
       return true; // Non-experts are always "complete"
     }
-    
+
     // Required fields for experts
-    const requiredFields = [
-      'full_name',
-      'specialization',
-      'experience_years',
-    ];
-    
+    const requiredFields = ["full_name", "specialization", "experience_years"];
+
     // Check if any required field is missing
     for (const field of requiredFields) {
       if (!profile[field as keyof UserProfile]) {
         return false;
       }
     }
-    
+
     return true;
   };
 
@@ -109,113 +125,115 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initializeAuth = async () => {
       try {
         // First check if we have a session
-        const { data: { session } } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
         if (session) {
           // We have a valid session
-          console.log('Valid session found');
+          console.log("Valid session found");
           setSession(session);
           setUser(session.user);
           await fetchProfile(session.user.id);
         } else {
           // No valid session, try to login with stored credentials
-          console.log('No valid session, checking for stored credentials');
+          console.log("No valid session, checking for stored credentials");
           const credentials = getStoredCredentials();
-          
+
           if (credentials) {
-            console.log('Found stored credentials, attempting automatic login');
+            console.log("Found stored credentials, attempting automatic login");
             try {
               const { error, data } = await supabase.auth.signInWithPassword({
                 email: credentials.email,
-                password: credentials.password
+                password: credentials.password,
               });
-              
+
               if (error) {
-                console.error('Auto-login error:', error.message);
+                console.error("Auto-login error:", error.message);
                 // Don't show error toast to user on auto-login failure
                 setLoading(false);
               } else if (data.user) {
-                console.log('Auto-login successful');
+                console.log("Auto-login successful");
                 // Don't show success toast on auto-login
                 setSession(data.session);
                 setUser(data.user);
                 await fetchProfile(data.user.id);
               }
             } catch (error) {
-              console.error('Auto-login exception:', error);
+              console.error("Auto-login exception:", error);
               setLoading(false);
             }
           } else {
-            console.log('No stored credentials found');
+            console.log("No stored credentials found");
             setLoading(false);
           }
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        console.error("Auth initialization error:", error);
         setLoading(false);
       }
     };
-  
+
     // Set a timeout to ensure loading state is reset even if auth fails
-  const timeoutId = setTimeout(() => {
-    if (loading) {
-      console.log('Auth initialization timeout - forcing loading to false');
-      setLoading(false);
-    }
-  }, 5000); // 5 second timeout as a safety measure
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.log("Auth initialization timeout - forcing loading to false");
+        setLoading(false);
+      }
+    }, 5000); // 5 second timeout as a safety measure
 
-  initializeAuth();
+    initializeAuth();
 
-  return () => {
-    clearTimeout(timeoutId);
-  };
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   const fetchProfile = async (userId: string) => {
     try {
       const { data, error, status } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
         .single();
 
       if (error && status !== 406) {
-        console.error('Error fetching profile:', error);
+        console.error("Error fetching profile:", error);
         toast.error("Error loading user profile.");
         setProfile(null);
       } else if (data) {
         const userProfile = data as UserProfile;
         setProfile(userProfile);
-        
+
         // Check if expert profile is complete
         const complete = checkProfileCompleteness(userProfile);
         setIsProfileComplete(complete);
-        
+
         // If expert and profile incomplete, show notification
         const expertRoles: UserRole[] = [
-          'therapist', 
-          'relationship_expert', 
-          'financial_expert', 
-          'dating_coach', 
-          'health_wellness_coach'
+          "therapist",
+          "relationship_expert",
+          "financial_expert",
+          "dating_coach",
+          "health_wellness_coach",
         ];
-        
+
         if (expertRoles.includes(userProfile.user_role) && !complete) {
           toast.warning(
-            "Your expert profile is incomplete. Please complete your profile to be visible to patients.", 
+            "Your expert profile is incomplete. Please complete your profile to be visible to patients.",
             {
               duration: 8000,
               action: {
                 label: "Complete Profile",
-                onClick: () => navigate('/therapist/profile')
-              }
+                onClick: () => navigate("/therapist/profile"),
+              },
             }
           );
         }
       }
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
-      toast.error('An unexpected error occurred while fetching your profile.');
+      console.error("Error in fetchProfile:", error);
+      toast.error("An unexpected error occurred while fetching your profile.");
       setProfile(null);
     } finally {
       setLoading(false);
@@ -225,60 +243,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+      const { error, data } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (error) {
-        console.error('Login error:', error.message);
-        toast.error(error.message || 'Invalid email or password');
+        console.error("Login error:", error.message);
+        toast.error(error.message || "Invalid email or password");
         setLoading(false);
       } else if (data.user) {
         // Store credentials for auto-login on refresh
         storeCredentials(email, password);
         toast.success("Login successful! Redirecting...");
-        
+
         // Fetch user profile to determine where to navigate
         const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
+          .from("profiles")
+          .select("*")
+          .eq("id", data.user.id)
           .single();
-        
+
         if (profileData) {
           const userProfile = profileData as UserProfile;
-          
+
           // Check if expert profile is complete
           const expertRoles: UserRole[] = [
-            'therapist', 
-            'relationship_expert', 
-            'financial_expert', 
-            'dating_coach', 
-            'health_wellness_coach'
+            "therapist",
+            "relationship_expert",
+            "financial_expert",
+            "dating_coach",
+            "health_wellness_coach",
           ];
-          
+
           const isExpert = expertRoles.includes(userProfile.user_role);
           const isComplete = checkProfileCompleteness(userProfile);
-          
+
           // Set profile completeness state
           setIsProfileComplete(isComplete);
-          
+
           // If expert with incomplete profile, redirect to profile page with notification
           if (isExpert && !isComplete) {
-            toast.warning("Please complete your expert profile before proceeding", {
-              duration: 8000
-            });
-            navigate('/therapist/profile');
+            toast.warning(
+              "Please complete your expert profile before proceeding",
+              {
+                duration: 8000,
+              }
+            );
+            navigate("/therapist/profile");
           } else {
             // Otherwise navigate to normal dashboard
-            const dashboardPath = userProfile.user_role === 'patient' ? '/patient' : '/therapist';
+            const dashboardPath =
+              userProfile.user_role === "patient" ? "/patient" : "/therapist";
             navigate(dashboardPath);
           }
-          
+
           // Then trigger a page refresh after a short delay to ensure navigation completes
           setTimeout(() => {
             window.location.reload();
           }, 100);
         } else {
           // If profile not found, navigate to a default route
-          navigate('/patient');
+          navigate("/patient");
           // Then trigger a page refresh
           setTimeout(() => {
             window.location.reload();
@@ -286,13 +311,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      console.error('Login exception:', error);
-      toast.error('Login failed. Please try again.');
+      console.error("Login exception:", error);
+      toast.error("Login failed. Please try again.");
       setLoading(false);
     }
   };
 
-  const register = async (userData: { email: string; full_name?: string; }, password: string, role: UserRole) => {
+  const register = async (
+    userData: { email: string; full_name?: string },
+    password: string,
+    role: UserRole
+  ) => {
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -301,23 +330,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         options: {
           data: {
             user_role: role,
-            full_name: userData.full_name || '',
+            full_name: userData.full_name || "",
           },
         },
       });
 
       if (error) {
-        console.error('Registration error:', error.message);
-        toast.error(error.message || 'Registration failed');
+        console.error("Registration error:", error.message);
+        toast.error(error.message || "Registration failed");
       } else if (data.user) {
-        toast.success('Registration successful! Please check your email for verification.');
-        navigate('/login');
+        toast.success(
+          "Registration successful! Please check your email for verification."
+        );
+        navigate("/login");
       } else {
-        toast.error('Registration failed. No user data returned.');
+        toast.error("Registration failed. No user data returned.");
       }
     } catch (error) {
-      console.error('Registration exception:', error);
-      toast.error('Registration failed. Please try again.');
+      console.error("Registration exception:", error);
+      toast.error("Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -328,21 +359,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Remove stored credentials on logout
       localStorage.removeItem(AUTH_STORAGE_KEY);
-      
+
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('Logout error:', error.message);
-        toast.error(error.message || 'Logout failed');
+        console.error("Logout error:", error.message);
+        toast.error(error.message || "Logout failed");
         throw error;
       }
-      
+
       setProfile(null);
       setSession(null);
       setUser(null);
-      toast.success('Logged out successfully');
+      toast.success("Logged out successfully");
     } catch (error) {
-      console.error('Logout exception:', error);
-      toast.error('Logout failed. Please try again.');
+      console.error("Logout exception:", error);
+      toast.error("Logout failed. Please try again.");
       throw error;
     } finally {
       setLoading(false);
@@ -368,24 +399,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Log the profile update data to help with debugging
       console.log("Updating profile with data:", profileUpdate);
 
-      const { error } = await supabase.from('profiles').upsert(profileUpdate);
+      const { error } = await supabase.from("profiles").upsert(profileUpdate);
 
       if (error) {
-        console.error('Update profile error:', error.message, error.details);
-        toast.error(error.message || 'Failed to update profile');
+        console.error("Update profile error:", error.message, error.details);
+        toast.error(error.message || "Failed to update profile");
       } else {
         const updatedProfile = { ...profile, ...profileUpdate } as UserProfile;
         setProfile(updatedProfile);
-        
+
         // Check if profile is now complete
         const complete = checkProfileCompleteness(updatedProfile);
         setIsProfileComplete(complete);
-        
-        toast.success('Profile updated successfully');
+
+        toast.success("Profile updated successfully");
       }
     } catch (error) {
-      console.error('Update profile exception:', error);
-      toast.error('Failed to update profile. Please try again.');
+      console.error("Update profile exception:", error);
+      toast.error("Failed to update profile. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -414,7 +445,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

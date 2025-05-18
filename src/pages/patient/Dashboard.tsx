@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { PageTitle } from "@/components/shared/PageTitle";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Bell,
   Brain,
   Calendar,
   Clock,
