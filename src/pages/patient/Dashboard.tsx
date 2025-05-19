@@ -31,6 +31,7 @@ import {
   differenceInHours,
 } from "date-fns";
 import { Conversation } from "@/hooks/useChat";
+import { RapidAlertButton } from "@/components/RapidAlert/RapidAlertButton";
 
 // Define type for combined updates
 type UpdateItem =
@@ -214,6 +215,10 @@ export default function PatientDashboard() {
           title={`Welcome, ${profile?.full_name?.split(" ")[0] || "there"}!`}
           subtitle="Your mental wellness dashboard"
         />
+
+        <div className="max-w-md mx-auto">
+          <RapidAlertButton />
+        </div>
 
         <motion.div
           className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"

@@ -47,6 +47,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTherapistAppointments, Appointment } from "@/hooks/useAppointments";
 import { format, parseISO } from "date-fns";
 import { useChatConversations } from "@/hooks/useChat";
+import { RapidAlertsWidget } from "@/components/RapidAlert/RapidAlertsWidget";
 
 // Types for the real data
 interface Patient {
@@ -494,6 +495,11 @@ export default function ExpertDashboard() {
           }!`}
           subtitle={`${timeOfDay} • ${currentTime.toLocaleDateString()}`}
         />
+
+        {/* Add Rapid Alerts Widget at the top */}
+        <div className="max-w-4xl mx-auto">
+          <RapidAlertsWidget />
+        </div>
 
         {/* Quick Actions Section */}
         <motion.div
