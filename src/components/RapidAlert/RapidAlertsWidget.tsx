@@ -63,7 +63,7 @@ export function RapidAlertsWidget() {
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {alert.description}
+                  Emergency assistance required
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {new Date(alert.created_at).toLocaleString()}

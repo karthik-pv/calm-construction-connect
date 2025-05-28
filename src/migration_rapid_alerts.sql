@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS rapid_alerts (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     patient_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-    description TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT 'Emergency assistance required',
     handled BOOLEAN DEFAULT FALSE,
     handled_by UUID REFERENCES profiles(id),
     handled_at TIMESTAMP WITH TIME ZONE,

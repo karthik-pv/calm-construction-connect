@@ -6,7 +6,6 @@ import { toast } from "sonner";
 export interface RapidAlert {
   id: string;
   patient_id: string;
-  description: string;
   handled: boolean;
   handled_by: string | null;
   handled_at: string | null;
@@ -19,13 +18,20 @@ export interface RapidAlert {
   };
 }
 
+export interface Therapist {
+  id: string;
+  full_name: string;
+  avatar_url?: string;
+  user_role: string;
+}
+
 // Hook for patients to create rapid alerts
 export function useCreateRapidAlert() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (description: string) => {
+    mutationFn: async () => {
       if (!user?.id) throw new Error("User not authenticated");
 
       const { data, error } = await supabase
@@ -33,7 +39,6 @@ export function useCreateRapidAlert() {
         .insert([
           {
             patient_id: user.id,
-            description,
           },
         ])
         .select()
@@ -52,6 +57,32 @@ export function useCreateRapidAlert() {
     },
     onError: (error) => {
       toast.error(`Error creating rapid alert: ${error.message}`);
+    },
+  });
+}
+
+// Hook to fetch all therapists
+export function useTherapistsList() {
+  return useQuery<Therapist[]>({
+    queryKey: ["therapistsList"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, user_role")
+        .in("user_role", [
+          "therapist",
+          "relationship_expert",
+          "financial_expert",
+          "dating_coach",
+          "health_wellness_coach",
+        ]);
+
+      if (error) {
+        console.error("Error fetching therapists:", error);
+        throw new Error(error.message);
+      }
+
+      return data || [];
     },
   });
 }
