@@ -48,6 +48,7 @@ import { useTherapistAppointments, Appointment } from "@/hooks/useAppointments";
 import { format, parseISO } from "date-fns";
 import { useChatConversations } from "@/hooks/useChat";
 import { RapidAlertsWidget } from "@/components/RapidAlert/RapidAlertsWidget";
+import { AnalyticsWidget } from "@/components/Analytics/AnalyticsWidget";
 
 // Types for the real data
 interface Patient {
@@ -626,6 +627,7 @@ export default function ExpertDashboard() {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="patients">{getClientNoun()}s</TabsTrigger>
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -1202,6 +1204,10 @@ export default function ExpertDashboard() {
                 </CardFooter>
               )}
             </Card>
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <AnalyticsWidget expertId={user?.id} />
           </TabsContent>
         </Tabs>
       </div>
