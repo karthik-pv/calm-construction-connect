@@ -250,7 +250,7 @@ export default function PatientExperts() {
               placeholder="Search experts..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-black/20"
+              className="pl-10 glass-input"
             />
           </div>
         </div>
@@ -259,11 +259,11 @@ export default function PatientExperts() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 py-5">
           <button
             className={cn(
-              "flex flex-col items-center justify-center rounded-lg border-2 p-4 transition-all duration-200",
+              "flex flex-col items-center justify-center rounded-lg border-2 p-4 transition-all duration-200 backdrop-blur-md",
               "hover:border-primary hover:bg-primary/5",
               selectedRole === null
                 ? "border-primary bg-primary/10 text-primary"
-                : "border-border/50 bg-black/30 text-muted-foreground"
+                : "border-border/50 glass-card text-muted-foreground"
             )}
             onClick={() => setSelectedRole(null)}
           >
@@ -275,11 +275,11 @@ export default function PatientExperts() {
             <button
               key={role}
               className={cn(
-                "flex flex-col items-center justify-center rounded-lg border-2 p-4 transition-all duration-200",
+                "flex flex-col items-center justify-center rounded-lg border-2 p-4 transition-all duration-200 backdrop-blur-md",
                 "hover:border-primary hover:bg-primary/5",
                 selectedRole === role
                   ? "border-primary bg-primary/10 text-primary"
-                  : "border-border/50 bg-black/30 text-muted-foreground"
+                  : "border-border/50 glass-card text-muted-foreground"
               )}
               onClick={() =>
                 setSelectedRole(role === selectedRole ? null : role)
@@ -299,7 +299,7 @@ export default function PatientExperts() {
         )}
 
         {error && (
-          <div className="p-4 bg-red-500/20 rounded">
+          <div className="p-4 glass-card border-destructive/30 bg-destructive/10 rounded">
             <p>Error: {error.message}</p>
             <Button onClick={() => window.location.reload()} className="mt-2">
               Retry
@@ -310,7 +310,7 @@ export default function PatientExperts() {
         {!isLoading && !error && (
           <>
             {filteredExperts.length === 0 ? (
-              <div className="text-center p-8 bg-black/20 rounded-lg">
+              <div className="text-center p-8 glass-card rounded-lg">
                 <p>No experts found matching your criteria.</p>
                 {(searchTerm || selectedRole) && (
                   <Button
@@ -326,28 +326,28 @@ export default function PatientExperts() {
                 )}
               </div>
             ) : (
-              <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredExperts.map((expert) => (
                   <Card
                     key={expert.id}
-                    className="overflow-hidden bg-black/50 border-border hover:border-primary/30 transition-all duration-300 backdrop-blur-md w-full"
+                    className="glass-card hover:border-primary/30 transition-all duration-300 h-full flex flex-col"
                   >
                     <CardHeader className="pb-3">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center space-x-3">
                           <Avatar className="h-12 w-12">
                             <AvatarImage src={expert.profilePic} />
-                            <AvatarFallback className="bg-primary/20">
+                            <AvatarFallback className="glass-avatar">
                               {expert.name[0]}
                             </AvatarFallback>
                           </Avatar>
-                          <div>
-                            <CardTitle className="text-base font-medium">
+                          <div className="min-w-0 flex-1">
+                            <CardTitle className="text-base font-medium truncate">
                               {expert.name}
                             </CardTitle>
                             <div className="flex items-center text-xs text-muted-foreground">
                               {EXPERT_ICONS[expert.expertType]}
-                              <span className="ml-1">
+                              <span className="ml-1 truncate">
                                 {EXPERT_TYPES[expert.expertType]}
                               </span>
                             </div>
@@ -359,27 +359,37 @@ export default function PatientExperts() {
                               ? "secondary"
                               : "secondary"
                           }
-                          className="text-xs"
+                          className="text-xs shrink-0 glass-badge"
                         >
                           {expert.status === "online" ? "Online" : "Offline"}
                         </Badge>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-3 pb-3">
+                    <CardContent className="space-y-3 pb-3 flex-1">
                       <div>
                         <p className="text-xs font-medium mb-1.5">
                           Specializes in:
                         </p>
                         <div className="flex flex-wrap gap-1.5">
-                          {expert.specialties.map((specialty, index) => (
+                          {expert.specialties
+                            .slice(0, 3)
+                            .map((specialty, index) => (
+                              <Badge
+                                key={index}
+                                variant="outline"
+                                className="text-xs glass-badge"
+                              >
+                                {specialty}
+                              </Badge>
+                            ))}
+                          {expert.specialties.length > 3 && (
                             <Badge
-                              key={index}
                               variant="outline"
-                              className="text-xs bg-black/30"
+                              className="text-xs glass-badge"
                             >
-                              {specialty}
+                              +{expert.specialties.length - 3} more
                             </Badge>
-                          ))}
+                          )}
                         </div>
                       </div>
                       {expert.education && (
@@ -387,7 +397,7 @@ export default function PatientExperts() {
                           <p className="text-xs font-medium mb-1.5">
                             Education:
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground line-clamp-2">
                             {expert.education}
                           </p>
                         </div>
@@ -404,11 +414,11 @@ export default function PatientExperts() {
                       )}
                     </CardContent>
                     <CardFooter className="pt-0">
-                      <div className="flex gap-4 w-full">
+                      <div className="flex gap-2 w-full">
                         <Button
                           variant="default"
                           size="sm"
-                          className="gap-1.5"
+                          className="gap-1.5 flex-1 glass-button"
                           asChild
                         >
                           <Link to={`/patient/chat/${expert.id}`}>
@@ -419,12 +429,12 @@ export default function PatientExperts() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="gap-1.5"
+                          className="gap-1.5 flex-1 glass-button"
                           asChild
                         >
                           <Link to={`/patient/book-appointment/${expert.id}`}>
                             <Calendar className="h-4 w-4" />
-                            <span>Book Appointment</span>
+                            <span>Book</span>
                           </Link>
                         </Button>
                       </div>

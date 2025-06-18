@@ -228,7 +228,7 @@ export default function PatientDashboard() {
         >
           <motion.div variants={item}>
             <Link to="/patient/chatbot">
-              <Card className="h-full bg-black/50 border-border backdrop-blur-md hover:border-primary/50 transition-all duration-300">
+              <Card className="h-full glass-card hover:border-primary/50 transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Brain className="h-5 w-5 text-primary" />
@@ -243,7 +243,9 @@ export default function PatientDashboard() {
                     Our AI can provide support, resources, and coping strategies
                     for common mental health challenges.
                   </p>
-                  <Button className="w-full mt-4">Start Chatting</Button>
+                  <Button className="w-full mt-4 glass-button">
+                    Start Chatting
+                  </Button>
                 </CardContent>
               </Card>
             </Link>
@@ -251,7 +253,7 @@ export default function PatientDashboard() {
 
           <motion.div variants={item}>
             <Link to="/patient/experts">
-              <Card className="h-full bg-black/50 border-border backdrop-blur-md hover:border-primary/50 transition-all duration-300">
+              <Card className="h-full glass-card hover:border-primary/50 transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="h-5 w-5 text-primary" />
@@ -267,7 +269,9 @@ export default function PatientDashboard() {
                     Browse experts specializing in construction worker mental
                     health, relationships, finances, and more.
                   </p>
-                  <Button className="w-full mt-4">Browse Experts</Button>
+                  <Button className="w-full mt-4 glass-button">
+                    Browse Experts
+                  </Button>
                 </CardContent>
               </Card>
             </Link>
@@ -275,13 +279,13 @@ export default function PatientDashboard() {
 
           <motion.div variants={item}>
             <Link to="/patient/chat">
-              <Card className="h-full bg-black/50 border-border backdrop-blur-md hover:border-primary/50 transition-all duration-300">
+              <Card className="h-full glass-card hover:border-primary/50 transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MessageCircle className="h-5 w-5 text-primary" />
                     <span>My Messages</span>
                     {unreadConversationsCount > 0 && (
-                      <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full px-2 py-1">
+                      <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full px-2 py-1 glass-badge">
                         {unreadConversationsCount}
                       </span>
                     )}
@@ -300,7 +304,9 @@ export default function PatientDashboard() {
                         }`
                       : "View and respond to messages from your care team"}
                   </p>
-                  <Button className="w-full mt-4">Open Chat</Button>
+                  <Button className="w-full mt-4 glass-button">
+                    Open Chat
+                  </Button>
                 </CardContent>
               </Card>
             </Link>
@@ -308,7 +314,7 @@ export default function PatientDashboard() {
 
           <motion.div variants={item}>
             <Link to="/patient/appointments">
-              <Card className="h-full bg-black/50 border-border backdrop-blur-md hover:border-primary/50 transition-all duration-300">
+              <Card className="h-full glass-card hover:border-primary/50 transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Clock className="h-5 w-5 text-primary" />
@@ -326,7 +332,9 @@ export default function PatientDashboard() {
                         )}`
                       : "No upcoming appointments"}
                   </p>
-                  <Button className="w-full mt-4">Manage Appointments</Button>
+                  <Button className="w-full mt-4 glass-button">
+                    Manage Appointments
+                  </Button>
                 </CardContent>
               </Card>
             </Link>
@@ -334,7 +342,7 @@ export default function PatientDashboard() {
 
           <motion.div variants={item}>
             <Link to="/patient/anxiety-calmer">
-              <Card className="h-full bg-black/50 border-border backdrop-blur-md hover:border-primary/50 transition-all duration-300">
+              <Card className="h-full glass-card hover:border-primary/50 transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-primary" />
@@ -349,7 +357,9 @@ export default function PatientDashboard() {
                     Listen to calming sounds and guided meditations to reduce
                     anxiety and stress.
                   </p>
-                  <Button className="w-full mt-4">Start Relaxing</Button>
+                  <Button className="w-full mt-4 glass-button">
+                    Start Relaxing
+                  </Button>
                 </CardContent>
               </Card>
             </Link>
@@ -361,7 +371,7 @@ export default function PatientDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
         >
-          <Card className="bg-black/50 border-border backdrop-blur-md">
+          <Card className="glass-card">
             <CardHeader>
               <CardTitle>Latest Updates</CardTitle>
               <CardDescription>
@@ -379,11 +389,11 @@ export default function PatientDashboard() {
                     allUpdates.map((update) => (
                       <div
                         key={update.id}
-                        className="flex items-start gap-4 p-3 rounded-lg bg-black/30"
+                        className="flex items-start gap-4 p-3 rounded-lg glass-card"
                       >
                         {update.type === "message" && (
                           <>
-                            <div className="rounded-full bg-primary/20 p-2">
+                            <div className="rounded-full glass-avatar p-2">
                               <MessageCircle className="h-4 w-4 text-primary" />
                             </div>
                             <div>
@@ -407,7 +417,7 @@ export default function PatientDashboard() {
 
                         {update.type === "appointment" && (
                           <>
-                            <div className="rounded-full bg-primary/20 p-2">
+                            <div className="rounded-full glass-avatar p-2">
                               <Clock className="h-4 w-4 text-primary" />
                             </div>
                             <div>
@@ -441,7 +451,7 @@ export default function PatientDashboard() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="mt-2"
+                        className="mt-2 glass-button"
                         asChild
                       >
                         <Link to="/patient/appointments">

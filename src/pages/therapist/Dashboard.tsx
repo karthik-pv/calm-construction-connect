@@ -511,7 +511,7 @@ export default function ExpertDashboard() {
         >
           <motion.div variants={item}>
             <Link to="/therapist/chat">
-              <Card className="h-full bg-black/50 border-border backdrop-blur-md hover:border-primary/50 transition-all duration-300">
+              <Card className="h-full glass-card hover:border-primary/50 transition-all duration-300">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <MessageCircle className="h-5 w-5 text-primary" />
@@ -535,7 +535,7 @@ export default function ExpertDashboard() {
                   </p>
                 </CardContent>
                 <CardFooter className="pt-0">
-                  <Button className="w-full" size="sm">
+                  <Button className="w-full glass-button" size="sm">
                     Open Chat
                   </Button>
                 </CardFooter>
@@ -545,7 +545,7 @@ export default function ExpertDashboard() {
 
           <motion.div variants={item}>
             <Link to="/therapist/appointments">
-              <Card className="h-full bg-black/50 border-border backdrop-blur-md hover:border-primary/50 transition-all duration-300">
+              <Card className="h-full glass-card hover:border-primary/50 transition-all duration-300">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Calendar className="h-5 w-5 text-primary" />
@@ -567,7 +567,7 @@ export default function ExpertDashboard() {
                   </p>
                 </CardContent>
                 <CardFooter className="pt-0">
-                  <Button className="w-full" size="sm">
+                  <Button className="w-full glass-button" size="sm">
                     View Schedule
                   </Button>
                 </CardFooter>
@@ -577,7 +577,7 @@ export default function ExpertDashboard() {
 
           <motion.div variants={item}>
             <Link to="/therapist/availability">
-              <Card className="h-full bg-black/50 border-border backdrop-blur-md hover:border-primary/50 transition-all duration-300">
+              <Card className="h-full glass-card hover:border-primary/50 transition-all duration-300">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Clock className="h-5 w-5 text-primary" />
@@ -590,7 +590,7 @@ export default function ExpertDashboard() {
                   </p>
                 </CardContent>
                 <CardFooter className="pt-0">
-                  <Button className="w-full" size="sm">
+                  <Button className="w-full glass-button" size="sm">
                     Manage Times
                   </Button>
                 </CardFooter>
@@ -600,7 +600,7 @@ export default function ExpertDashboard() {
 
           <motion.div variants={item}>
             <Link to="/therapist/posts/create">
-              <Card className="h-full bg-black/50 border-border backdrop-blur-md hover:border-primary/50 transition-all duration-300">
+              <Card className="h-full glass-card hover:border-primary/50 transition-all duration-300">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <FileText className="h-5 w-5 text-primary" />
@@ -613,7 +613,7 @@ export default function ExpertDashboard() {
                   </p>
                 </CardContent>
                 <CardFooter className="pt-0">
-                  <Button className="w-full" size="sm">
+                  <Button className="w-full glass-button" size="sm">
                     New Post
                   </Button>
                 </CardFooter>
@@ -639,7 +639,7 @@ export default function ExpertDashboard() {
               className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6"
             >
               <motion.div variants={item}>
-                <Card className="bg-black/40 border-border backdrop-blur-md">
+                <Card className="glass-card">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">
                       Total {getClientNoun()}s
@@ -666,7 +666,7 @@ export default function ExpertDashboard() {
               </motion.div>
 
               <motion.div variants={item}>
-                <Card className="bg-black/40 border-border backdrop-blur-md">
+                <Card className="glass-card">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">
                       Appointments This Week
@@ -695,7 +695,7 @@ export default function ExpertDashboard() {
               </motion.div>
 
               <motion.div variants={item}>
-                <Card className="bg-black/40 border-border backdrop-blur-md">
+                <Card className="glass-card">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">
                       Unread Messages
@@ -736,7 +736,7 @@ export default function ExpertDashboard() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  <Card className="bg-black/40 border-border backdrop-blur-md">
+                  <Card className="glass-card">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <CardTitle>Urgent {getClientNoun()} Requests</CardTitle>
@@ -836,7 +836,7 @@ export default function ExpertDashboard() {
               <div className="space-y-6">
                 {/* Upcoming Appointments */}
                 <motion.div variants={item}>
-                  <Card className="bg-black/40 border-border backdrop-blur-md">
+                  <Card className="glass-card">
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle>Today's Schedule</CardTitle>
@@ -970,7 +970,7 @@ export default function ExpertDashboard() {
 
                 {/* Recent Messages */}
                 <motion.div variants={item}>
-                  <Card className="bg-black/40 border-border backdrop-blur-md">
+                  <Card className="glass-card">
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle>Recent Messages</CardTitle>
@@ -1044,7 +1044,7 @@ export default function ExpertDashboard() {
           </TabsContent>
 
           <TabsContent value="patients">
-            <Card className="bg-black/40 border-border backdrop-blur-md mt-6">
+            <Card className="glass-card mt-6">
               <CardHeader>
                 <CardTitle>Your {getClientNoun()}s</CardTitle>
                 <CardDescription>
@@ -1061,7 +1061,7 @@ export default function ExpertDashboard() {
           </TabsContent>
 
           <TabsContent value="appointments">
-            <Card className="bg-black/40 border-border backdrop-blur-md mt-6">
+            <Card className="glass-card mt-6">
               <CardHeader>
                 <CardTitle>Appointment Calendar</CardTitle>
                 <CardDescription>

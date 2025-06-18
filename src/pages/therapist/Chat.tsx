@@ -267,7 +267,7 @@ export default function TherapistChat() {
         <div
           className={`${
             id ? "hidden md:block" : "block"
-          } w-full md:w-80 md:border-r border-border bg-black/30`}
+          } w-full md:w-80 md:border-r border-border glass-card`}
         >
           <div className="p-4">
             <PageTitle
@@ -294,7 +294,7 @@ export default function TherapistChat() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="mt-2 w-full"
+                  className="mt-2 w-full glass-button"
                   onClick={() => window.location.reload()}
                 >
                   Retry
@@ -329,7 +329,7 @@ export default function TherapistChat() {
                           <div className="relative">
                             <Avatar>
                               <AvatarImage src={conv.profilePic} />
-                              <AvatarFallback>
+                              <AvatarFallback className="glass-avatar">
                                 {conv.name.charAt(0)}
                               </AvatarFallback>
                             </Avatar>
@@ -396,19 +396,19 @@ export default function TherapistChat() {
           {currentPatient ? (
             <>
               {/* Chat Header */}
-              <div className="border-b border-border p-4 bg-black/40 backdrop-blur-sm flex items-center justify-between">
+              <div className="border-b border-border p-4 glass-card flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="md:hidden mr-1"
+                    className="md:hidden mr-1 glass-button"
                     onClick={handleBackToList}
                   >
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
                   <Avatar>
                     <AvatarImage src={currentPatient.profilePic} />
-                    <AvatarFallback>
+                    <AvatarFallback className="glass-avatar">
                       {currentPatient.name.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
@@ -432,7 +432,11 @@ export default function TherapistChat() {
                 <div className="flex items-center gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="glass-button"
+                      >
                         <MoreVertical className="h-5 w-5" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -455,7 +459,7 @@ export default function TherapistChat() {
                 onValueChange={(v) => setActiveTab(v as "chat" | "notes")}
                 className="flex-1 flex flex-col"
               >
-                <div className="border-b border-border bg-black/20 backdrop-blur-sm">
+                <div className="border-b border-border glass-card">
                   <TabsList className="w-full flex justify-center">
                     <TabsTrigger value="chat" className="flex-1">
                       Chat
@@ -490,7 +494,7 @@ export default function TherapistChat() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="mt-2"
+                            className="mt-2 glass-button"
                             onClick={() => window.location.reload()}
                           >
                             Retry
@@ -501,7 +505,7 @@ export default function TherapistChat() {
                       <div className="flex flex-col justify-center items-center h-full text-center p-4">
                         <Avatar className="h-16 w-16 mb-4">
                           <AvatarImage src={currentPatient.profilePic} />
-                          <AvatarFallback className="text-lg">
+                          <AvatarFallback className="glass-avatar text-lg">
                             {currentPatient.name.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
@@ -564,7 +568,7 @@ export default function TherapistChat() {
                                         <AvatarImage
                                           src={profile?.avatar_url || ""}
                                         />
-                                        <AvatarFallback>
+                                        <AvatarFallback className="glass-avatar">
                                           {profile?.full_name?.charAt(0) || "T"}
                                         </AvatarFallback>
                                       </>
@@ -573,7 +577,7 @@ export default function TherapistChat() {
                                         <AvatarImage
                                           src={currentPatient.profilePic}
                                         />
-                                        <AvatarFallback>
+                                        <AvatarFallback className="glass-avatar">
                                           {currentPatient.name.charAt(0)}
                                         </AvatarFallback>
                                       </>
@@ -606,29 +610,28 @@ export default function TherapistChat() {
                   </ScrollArea>
 
                   {/* Message Input */}
-                  <div className="border-t border-border p-4 bg-black/40 backdrop-blur-sm">
+                  <div className="border-t border-border p-4 glass-card">
                     <div className="flex gap-2">
                       <Input
                         ref={messageInputRef}
+                        placeholder="Type a message..."
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        placeholder="Type your message..."
-                        className="flex-1 bg-black/30"
-                        disabled={sendMessageMutation.isPending}
+                        className="glass-input"
                       />
                       <Button
                         onClick={handleSendMessage}
                         disabled={
                           !newMessage.trim() || sendMessageMutation.isPending
                         }
+                        className="glass-button"
                       >
                         {sendMessageMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <Send className="h-4 w-4 mr-2" />
+                          <Send className="h-4 w-4" />
                         )}
-                        Send
                       </Button>
                     </div>
                   </div>
@@ -636,68 +639,46 @@ export default function TherapistChat() {
 
                 <TabsContent
                   value="notes"
-                  className="flex-1 flex flex-col p-0 m-0 data-[state=inactive]:hidden"
+                  className="flex-1 flex flex-col p-4 data-[state=inactive]:hidden"
                 >
-                  <div className="p-4 flex-1 overflow-auto">
-                    <Card className="bg-black/30 border-border">
-                      <CardHeader>
-                        <CardTitle className="flex items-center">
-                          <UserCircle2 className="h-5 w-5 mr-2" />
-                          Patient Notes
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {isLoadingNotes ? (
-                          <div className="flex justify-center py-4">
-                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            <div>
-                              <h3 className="text-sm font-medium mb-2">
-                                Issues & Concerns
-                              </h3>
-                              <div className="flex flex-wrap gap-2 mb-4">
-                                {getTags(currentPatient.id).map((tag) => (
-                                  <Badge key={tag} variant="secondary">
-                                    {tag}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div>
-                              <h3 className="text-sm font-medium mb-2">
-                                Notes
-                              </h3>
-                              <textarea
-                                value={patientNotes}
-                                onChange={(e) =>
-                                  setPatientNotes(e.target.value)
-                                }
-                                placeholder="Add your private notes about this patient here..."
-                                className="w-full h-40 rounded-md border border-border bg-black/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                              />
-                            </div>
-
-                            <div className="flex justify-end">
-                              <Button
-                                onClick={handleSaveNotes}
-                                disabled={isSavingNotes}
-                              >
-                                {isSavingNotes ? (
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                  <FileText className="h-4 w-4 mr-2" />
-                                )}
-                                Save Notes
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
+                  <Card className="flex-1 glass-card">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Patient Notes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col">
+                      {isLoadingNotes ? (
+                        <div className="flex justify-center items-center h-full">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                      ) : (
+                        <textarea
+                          className="flex-1 w-full p-3 glass-input resize-none"
+                          placeholder="Write your notes about this patient here..."
+                          value={patientNotes}
+                          onChange={(e) => setPatientNotes(e.target.value)}
+                        />
+                      )}
+                      <div className="flex justify-end mt-4">
+                        <Button
+                          onClick={handleSaveNotes}
+                          disabled={isSavingNotes}
+                          className="glass-button"
+                        >
+                          {isSavingNotes ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              Saving...
+                            </>
+                          ) : (
+                            "Save Notes"
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
               </Tabs>
             </>

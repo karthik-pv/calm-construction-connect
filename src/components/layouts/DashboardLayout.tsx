@@ -69,7 +69,7 @@ const getNavItems = (role: UserRole): NavItem[] => {
       { label: "Chat", href: "/therapist/chat", icon: MessageCircle },
       { label: "Posts", href: "/therapist/posts", icon: FileText },
       { label: "Profile", href: "/therapist/profile", icon: User },
-      { label: "Manage Therapists", href: "/admin/therapists", icon: Settings },
+      // { label: "Manage Therapists", href: "/admin/therapists", icon: Settings },
     ];
   }
 };

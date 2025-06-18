@@ -428,7 +428,7 @@ export default function PatientChatbot() {
           subtitle="Chat with our AI assistant about your feelings and concerns"
         />
 
-        <Card className="flex-1 flex flex-col mt-6 overflow-hidden bg-black/40 backdrop-blur-sm border-border">
+        <Card className="flex-1 flex flex-col mt-6 overflow-hidden glass-card">
           <CardContent className="flex-1 flex flex-col p-4 h-full">
             <div className="flex-1 overflow-y-auto mb-4 pr-2 custom-scrollbar space-y-4">
               <AnimatePresence>
@@ -454,14 +454,14 @@ export default function PatientChatbot() {
                         {message.sender === "user" ? (
                           <>
                             <AvatarImage src={profile?.avatar_url} alt="User" />
-                            <AvatarFallback className="bg-primary/20 text-primary">
+                            <AvatarFallback className="glass-avatar text-primary">
                               {profile?.full_name?.charAt(0) || "U"}
                             </AvatarFallback>
                           </>
                         ) : (
                           <>
                             <AvatarImage src="/bot-avatar.png" alt="Bot" />
-                            <AvatarFallback className="bg-primary text-primary-foreground">
+                            <AvatarFallback className="glass-avatar text-primary-foreground">
                               AI
                             </AvatarFallback>
                           </>
@@ -495,7 +495,7 @@ export default function PatientChatbot() {
                   >
                     <div className="flex items-start max-w-[75%] gap-2">
                       <Avatar className="h-8 w-8 mt-0.5">
-                        <AvatarFallback className="bg-primary text-primary-foreground">
+                        <AvatarFallback className="glass-avatar text-primary-foreground">
                           AI
                         </AvatarFallback>
                       </Avatar>
@@ -555,12 +555,13 @@ export default function PatientChatbot() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
-                  className="bg-black/50"
+                  className="glass-input"
                 />
                 <Button
                   onClick={handleSendMessage}
                   disabled={input.trim() === "" || isTyping}
                   size="icon"
+                  className="glass-button"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
@@ -569,13 +570,13 @@ export default function PatientChatbot() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="bg-black/50 hover:bg-black/70 transition-all duration-300 border-white/10"
+                      className="glass-button transition-all duration-300 border-white/10"
                       disabled={isCallActive}
                     >
                       <Phone className="h-4 w-4 text-white/80" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="bg-black/95 border-border backdrop-blur-md">
+                  <DropdownMenuContent className="glass-card border-border backdrop-blur-md">
                     <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Languages className="h-4 w-4" />
                       Select Language

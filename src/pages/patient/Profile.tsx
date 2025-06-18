@@ -155,7 +155,7 @@ export default function PatientProfile() {
               <form onSubmit={handleProfileSubmit}>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Avatar Section */}
-                  <Card className="bg-black/40 border-border backdrop-blur-md lg:col-span-1">
+                  <Card className="glass-card lg:col-span-1">
                     <CardHeader>
                       <CardTitle>Profile Picture</CardTitle>
                       <CardDescription>
@@ -166,13 +166,13 @@ export default function PatientProfile() {
                       <div className="relative mb-4">
                         <Avatar className="h-32 w-32">
                           <AvatarImage src={avatarPreview || undefined} />
-                          <AvatarFallback className="text-4xl">
+                          <AvatarFallback className="text-4xl glass-avatar">
                             {profileData.full_name.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
                         <label
                           htmlFor="profile-image"
-                          className="absolute bottom-0 right-0 p-1 rounded-full bg-primary hover:bg-primary/80 text-white cursor-pointer"
+                          className="absolute bottom-0 right-0 p-1 rounded-full glass-button cursor-pointer"
                         >
                           <Camera className="h-5 w-5" />
                         </label>
@@ -191,7 +191,7 @@ export default function PatientProfile() {
                   </Card>
 
                   {/* Personal Info Section */}
-                  <Card className="bg-black/40 border-border backdrop-blur-md lg:col-span-2">
+                  <Card className="glass-card lg:col-span-2">
                     <CardHeader>
                       <CardTitle>Personal Information</CardTitle>
                       <CardDescription>
@@ -292,7 +292,11 @@ export default function PatientProfile() {
                       </div>
                     </CardContent>
                     <CardFooter className="justify-end">
-                      <Button type="submit" disabled={loading}>
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="glass-button"
+                      >
                         {loading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -315,7 +319,7 @@ export default function PatientProfile() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <Card className="bg-black/40 border-border backdrop-blur-md">
+              <Card className="glass-card">
                 <CardHeader>
                   <CardTitle>Security Settings</CardTitle>
                   <CardDescription>
@@ -337,6 +341,7 @@ export default function PatientProfile() {
                             value={passwordData.current}
                             onChange={handlePasswordChange}
                             placeholder="Enter your current password"
+                            className="glass-input"
                           />
                           <button
                             type="button"
@@ -362,6 +367,7 @@ export default function PatientProfile() {
                             value={passwordData.new}
                             onChange={handlePasswordChange}
                             placeholder="Enter your new password"
+                            className="glass-input"
                           />
                         </div>
                       </div>
@@ -378,13 +384,14 @@ export default function PatientProfile() {
                             value={passwordData.confirm}
                             onChange={handlePasswordChange}
                             placeholder="Confirm your new password"
+                            className="glass-input"
                           />
                         </div>
                       </div>
 
                       <Button
                         type="submit"
-                        className="w-full"
+                        className="w-full glass-button"
                         disabled={
                           passwordSubmitting ||
                           !passwordData.current ||

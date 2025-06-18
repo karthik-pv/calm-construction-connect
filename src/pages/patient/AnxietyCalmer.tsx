@@ -506,7 +506,7 @@ export default function AnxietyCalmer() {
                         currentTrack?.id === track.id
                           ? "border-primary"
                           : "border-border"
-                      } bg-black/40 backdrop-blur-md`}
+                      } glass-card`}
                     >
                       <div
                         className="h-48 bg-cover bg-center relative"
@@ -516,7 +516,7 @@ export default function AnxietyCalmer() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-16 w-16 rounded-full bg-black/50 hover:bg-black/70 text-white border border-white/20"
+                            className="h-16 w-16 rounded-full glass-button text-white border border-white/20"
                             onClick={() => playTrack(track)}
                           >
                             <Play className="h-8 w-8" />

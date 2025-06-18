@@ -143,7 +143,7 @@ const AppointmentCard = ({
   const isPast = new Date(appointment.end_time) < new Date();
 
   return (
-    <Card className="bg-black/50 border-border backdrop-blur-md hover:border-primary/50 transition-all duration-300">
+    <Card className="glass-card hover:border-primary/50 transition-all duration-300">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
@@ -152,7 +152,7 @@ const AppointmentCard = ({
               <div className="flex items-center">
                 <Avatar className="h-6 w-6 mr-2">
                   <AvatarImage src={appointment.patient?.avatar_url} />
-                  <AvatarFallback>
+                  <AvatarFallback className="glass-avatar">
                     <User className="h-4 w-4" />
                   </AvatarFallback>
                 </Avatar>
@@ -184,7 +184,7 @@ const AppointmentCard = ({
             <Button
               variant="outline"
               size="sm"
-              className="text-xs border-red-500/50 text-red-400 hover:text-red-300 hover:border-red-400"
+              className="glass-button text-xs border-red-500/50 text-red-400 hover:text-red-300 hover:border-red-400"
               onClick={() =>
                 onUpdateStatus(
                   appointment.id,
@@ -199,7 +199,7 @@ const AppointmentCard = ({
             <Button
               variant="outline"
               size="sm"
-              className="text-xs border-green-500/50 text-green-400 hover:text-green-300 hover:border-green-400"
+              className="glass-button text-xs border-green-500/50 text-green-400 hover:text-green-300 hover:border-green-400"
               onClick={() =>
                 onUpdateStatus(
                   appointment.id,
@@ -214,12 +214,27 @@ const AppointmentCard = ({
           </div>
         )}
 
-        {isConfirmed && isPast && (
-          <div className="flex justify-end mt-2">
+        {isConfirmed && (
+          <div className="flex justify-end gap-2 mt-2">
             <Button
               variant="outline"
               size="sm"
-              className="text-xs"
+              className="glass-button text-xs border-red-500/50 text-red-400 hover:text-red-300 hover:border-red-400"
+              onClick={() =>
+                onUpdateStatus(
+                  appointment.id,
+                  "canceled",
+                  appointment.patient_id
+                )
+              }
+            >
+              <X className="mr-1 h-3 w-3" />
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="glass-button text-xs border-blue-500/50 text-blue-400 hover:text-blue-300 hover:border-blue-400"
               onClick={() =>
                 onUpdateStatus(
                   appointment.id,
@@ -229,7 +244,27 @@ const AppointmentCard = ({
               }
             >
               <CalendarCheck className="mr-1 h-3 w-3" />
-              Mark Completed
+              Mark Complete
+            </Button>
+          </div>
+        )}
+
+        {isPast && appointment.status === "confirmed" && (
+          <div className="flex justify-end mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="glass-button text-xs border-blue-500/50 text-blue-400 hover:text-blue-300 hover:border-blue-400"
+              onClick={() =>
+                onUpdateStatus(
+                  appointment.id,
+                  "completed",
+                  appointment.patient_id
+                )
+              }
+            >
+              <CalendarCheck className="mr-1 h-3 w-3" />
+              Mark Complete
             </Button>
           </div>
         )}

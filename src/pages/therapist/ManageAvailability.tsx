@@ -162,6 +162,7 @@ const TimeSlotEditor = ({
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
+                className="glass-input"
               />
             </div>
             <div className="space-y-2">
@@ -171,6 +172,7 @@ const TimeSlotEditor = ({
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
+                className="glass-input"
               />
             </div>
           </div>
@@ -186,10 +188,12 @@ const TimeSlotEditor = ({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" className="glass-button" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>Save</Button>
+          <Button className="glass-button" onClick={handleSave}>
+            Save
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -263,6 +267,7 @@ export default function ManageAvailability() {
             subtitle="Set your available time slots for appointments"
           />
           <Button
+            className="glass-button"
             onClick={() => {
               setEditingSlot(null);
               setIsAddDialogOpen(true);
@@ -290,7 +295,7 @@ export default function ManageAvailability() {
             </div>
           </div>
         ) : availability.length === 0 ? (
-          <Card className="bg-black/50 border-border backdrop-blur-md">
+          <Card className="glass-card">
             <CardHeader>
               <CardTitle>No Availability Set</CardTitle>
               <CardDescription>
@@ -300,6 +305,7 @@ export default function ManageAvailability() {
             </CardHeader>
             <CardContent className="flex justify-center">
               <Button
+                className="glass-button"
                 onClick={() => {
                   setEditingSlot(null);
                   setIsAddDialogOpen(true);
@@ -311,7 +317,7 @@ export default function ManageAvailability() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="bg-black/50 border-border backdrop-blur-md">
+          <Card className="glass-card">
             <CardHeader>
               <CardTitle>Your Availability</CardTitle>
               <CardDescription>
@@ -361,6 +367,7 @@ export default function ManageAvailability() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="glass-button"
                               onClick={() => {
                                 setEditingSlot(slot);
                                 setIsAddDialogOpen(true);
@@ -371,6 +378,7 @@ export default function ManageAvailability() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="glass-button"
                               onClick={() => handleDeleteSlot(slot.id)}
                             >
                               <Trash2 className="h-4 w-4 text-red-400" />
@@ -390,6 +398,7 @@ export default function ManageAvailability() {
               </p>
               <Button
                 variant="outline"
+                className="glass-button"
                 onClick={() => {
                   setEditingSlot(null);
                   setIsAddDialogOpen(true);

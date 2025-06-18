@@ -45,8 +45,8 @@ import TherapistAppointments from "./pages/therapist/Appointments";
 import ManageAvailability from "./pages/therapist/ManageAvailability";
 import TherapistPatientProfile from "./pages/therapist/PatientProfile";
 
-// Admin Pages
-import ManageTherapists from "./pages/admin/ManageTherapists";
+// // Admin Pages
+// import ManageTherapists from "./pages/admin/ManageTherapists";
 
 // Other Pages
 import NotFound from "./pages/NotFound";
@@ -296,7 +296,7 @@ const AppRoutes = () => {
           />
         }
       >
-        <Route path="/admin/therapists" element={<ManageTherapists />} />
+        {/* <Route path="/admin/therapists" element={<ManageTherapists />} /> */}
       </Route>
 
       {/* 404 Route */}

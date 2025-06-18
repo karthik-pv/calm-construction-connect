@@ -251,7 +251,7 @@ export default function PatientProfile() {
             <div className="flex flex-col md:flex-row items-start gap-6 mb-8">
               <Avatar className="h-24 w-24">
                 <AvatarImage src={patient.avatar_url} />
-                <AvatarFallback className="text-2xl">
+                <AvatarFallback className="glass-avatar text-2xl">
                   {patient.full_name?.charAt(0) || "P"}
                 </AvatarFallback>
               </Avatar>
@@ -271,6 +271,7 @@ export default function PatientProfile() {
                 <div className="mt-6 flex gap-4">
                   <Button
                     variant="outline"
+                    className="glass-button"
                     onClick={() => navigate(`/therapist/chat/${patient.id}`)}
                   >
                     Send Message
@@ -287,7 +288,7 @@ export default function PatientProfile() {
               </TabsList>
 
               <TabsContent value="appointments">
-                <Card className="bg-black/30 border-border">
+                <Card className="glass-card">
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <Calendar className="h-5 w-5 mr-2" />
@@ -304,7 +305,7 @@ export default function PatientProfile() {
                         <p className="text-muted-foreground">
                           No upcoming appointments
                         </p>
-                        <Button variant="outline" className="mt-4">
+                        <Button variant="outline" className="glass-button mt-4">
                           Schedule Appointment
                         </Button>
                       </div>
@@ -313,7 +314,7 @@ export default function PatientProfile() {
                         {appointments.map((appointment) => (
                           <div
                             key={appointment.id}
-                            className="p-4 rounded-lg bg-black/20 border border-border"
+                            className="p-4 rounded-lg glass-card"
                           >
                             <div className="flex justify-between items-start">
                               <div>
@@ -342,7 +343,7 @@ export default function PatientProfile() {
               </TabsContent>
 
               <TabsContent value="notes">
-                <Card className="bg-black/30 border-border">
+                <Card className="glass-card">
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <UserCircle2 className="h-5 w-5 mr-2" />
@@ -377,12 +378,13 @@ export default function PatientProfile() {
                             value={patientNotes}
                             onChange={(e) => setPatientNotes(e.target.value)}
                             placeholder="Add your private notes about this patient here..."
-                            className="w-full h-40 rounded-md border border-border bg-black/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="glass-input w-full h-40"
                           />
                         </div>
 
                         <div className="flex justify-end">
                           <Button
+                            className="glass-button"
                             onClick={handleSaveNotes}
                             disabled={isSavingNotes}
                           >
@@ -401,7 +403,7 @@ export default function PatientProfile() {
               </TabsContent>
 
               <TabsContent value="history">
-                <Card className="bg-black/30 border-border">
+                <Card className="glass-card">
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <Clock className="h-5 w-5 mr-2" />

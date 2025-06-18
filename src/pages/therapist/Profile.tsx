@@ -396,20 +396,20 @@ export default function TherapistProfile() {
                         Profile Picture
                       </CardTitle>
                       <CardDescription>
-                        Upload a professional photo to enhance patient trust
+                        Upload a professional photo for your profile
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col items-center justify-center">
                       <div className="relative mb-4">
                         <Avatar className="h-32 w-32 border-2 border-primary/20 shadow-lg">
                           <AvatarImage src={avatarPreview || undefined} />
-                          <AvatarFallback className="text-4xl font-heading">
+                          <AvatarFallback className="text-4xl font-heading glass-avatar">
                             {profileData.full_name.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
                         <label
                           htmlFor="profile-image"
-                          className="absolute bottom-0 right-0 p-1.5 rounded-full bg-primary hover:bg-primary/80 text-white cursor-pointer shadow-md hover:shadow-lg transition-all duration-200"
+                          className="absolute bottom-0 right-0 p-1.5 rounded-full glass-button cursor-pointer shadow-md hover:shadow-lg transition-all duration-200"
                         >
                           <Camera className="h-5 w-5" />
                         </label>
@@ -458,7 +458,9 @@ export default function TherapistProfile() {
                             onChange={handleInputChange}
                             placeholder="Your full name"
                             className={
-                              !profileData.full_name ? "border-destructive" : ""
+                              !profileData.full_name
+                                ? "glass-input border-destructive"
+                                : "glass-input"
                             }
                           />
                           {!profileData.full_name && (
@@ -475,6 +477,7 @@ export default function TherapistProfile() {
                             value={profileData.email}
                             onChange={handleInputChange}
                             placeholder="Your email"
+                            className="glass-input"
                             disabled
                           />
                         </div>
@@ -486,6 +489,7 @@ export default function TherapistProfile() {
                             value={profileData.phone_number}
                             onChange={handleInputChange}
                             placeholder="Your phone number"
+                            className="glass-input"
                           />
                         </div>
                         <div className="space-y-2">
@@ -521,6 +525,7 @@ export default function TherapistProfile() {
                             value={profileData.title}
                             onChange={handleInputChange}
                             placeholder="Your professional title"
+                            className="glass-input"
                           />
                         </div>
                       </div>
@@ -534,6 +539,7 @@ export default function TherapistProfile() {
                           onChange={handleInputChange}
                           placeholder="A brief professional biography highlighting your approach and expertise"
                           rows={4}
+                          className="glass-input"
                         />
                       </div>
 
@@ -553,8 +559,8 @@ export default function TherapistProfile() {
                             placeholder="Years of professional experience"
                             className={
                               !profileData.experience_years
-                                ? "border-destructive"
-                                : ""
+                                ? "glass-input border-destructive"
+                                : "glass-input"
                             }
                           />
                           {!profileData.experience_years && (
@@ -571,6 +577,7 @@ export default function TherapistProfile() {
                             value={profileData.languages}
                             onChange={handleInputChange}
                             placeholder="e.g. English, Spanish"
+                            className="glass-input"
                           />
                         </div>
                         <div className="space-y-2">
@@ -583,6 +590,7 @@ export default function TherapistProfile() {
                             value={profileData.appointment_fee}
                             onChange={handleInputChange}
                             placeholder="e.g. £90"
+                            className="glass-input"
                           />
                         </div>
                         <div className="space-y-2">
@@ -595,12 +603,17 @@ export default function TherapistProfile() {
                             value={profileData.session_duration}
                             onChange={handleInputChange}
                             placeholder="e.g. 50"
+                            className="glass-input"
                           />
                         </div>
                       </div>
                     </CardContent>
                     <CardFooter className="justify-end">
-                      <Button type="submit" disabled={loading}>
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="glass-button"
+                      >
                         {loading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -643,6 +656,7 @@ export default function TherapistProfile() {
                         onChange={handleInputChange}
                         placeholder="List your degrees and academic qualifications"
                         rows={3}
+                        className="glass-input"
                       />
                     </div>
 
@@ -657,6 +671,7 @@ export default function TherapistProfile() {
                         onChange={handleInputChange}
                         placeholder="List your professional licenses and certifications"
                         rows={3}
+                        className="glass-input"
                       />
                     </div>
 
@@ -751,8 +766,8 @@ export default function TherapistProfile() {
                           placeholder="e.g. Anxiety, Depression, Trauma"
                           className={
                             profileData.expertise.length === 0
-                              ? "border-destructive"
-                              : ""
+                              ? "glass-input border-destructive"
+                              : "glass-input"
                           }
                         />
                         <Button
