@@ -157,18 +157,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             >
               <LogOut className="h-5 w-5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setDarkMode(!darkMode)}
-              aria-label="Toggle theme"
-            >
-              {darkMode ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
-            </Button>
           </div>
         </div>
       </aside>

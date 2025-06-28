@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
@@ -203,7 +203,7 @@ const formSteps = [
 export default function RegisterExpert() {
   const { register: registerUser, loading } = useAuth();
   const navigate = useNavigate();
-  const { expertType } = useParams<{ expertType: string }>();
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(
@@ -217,6 +217,17 @@ export default function RegisterExpert() {
   const [selectedExpertise, setSelectedExpertise] = useState<string[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState<FormData | null>(null);
+
+  // Extract expert type from pathname instead of useParams
+  const getExpertTypeFromPath = (): string => {
+    const pathname = location.pathname; // e.g., "/register/relationship_expert"
+    const parts = pathname.split("/");
+    const expertType = parts[parts.length - 1]; // Get the last part
+    return expertType;
+  };
+
+  const expertType = getExpertTypeFromPath();
 
   // Validate expert type
   const validExpertType = expertType as keyof typeof expertiseOptions;
@@ -244,7 +255,7 @@ export default function RegisterExpert() {
       username: "",
       specialization: "",
       title: "",
-      experience_years: "",
+      experience_years: 0,
       bio: "",
       education: "",
       certifications: "",
@@ -266,7 +277,7 @@ export default function RegisterExpert() {
       setProfileImage(file);
       setProfileImagePreview(URL.createObjectURL(file));
 
-      // Upload image immediately
+      // Upload image immediately as requested
       setIsUploadingImage(true);
       try {
         const fileExt = file.name.split(".").pop();
@@ -314,30 +325,51 @@ export default function RegisterExpert() {
     window.scrollTo(0, 0);
   };
 
-  const onSubmit = async (data: FormData) => {
+  // New function to handle form data collection (no account creation yet)
+  const collectFormData = (data: FormData) => {
+    setFormData(data);
+    console.log("Form data collected:", data);
+    console.log("Expert type from path:", expertType);
+    console.log("Is valid expert type:", isValidExpertType);
+
+    // Show confirmation or preview step
+    toast.success(
+      `All information collected for ${expertTitle} registration! Review and create your profile.`
+    );
+  };
+
+  // New function to actually create the account and profile
+  const createProfile = async () => {
+    if (!formData) {
+      toast.error("Form data not found. Please fill out the form again.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // Determine the role based on the URL parameter
+      // Determine the role based on the extracted expert type
       const role = isValidExpertType
         ? (validExpertType as UserRole)
         : "therapist";
 
       console.log(
-        "Registering user with role:",
+        "Creating profile with role:",
         role,
         "for expert type:",
-        expertType
+        expertType,
+        "from path:",
+        location.pathname
       );
 
       // Step 1: Create the user account in auth.users
       const { data: userData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
+        email: formData.email,
+        password: formData.password,
         options: {
           data: {
             user_role: role,
-            full_name: data.full_name,
+            full_name: formData.full_name,
           },
         },
       });
@@ -376,26 +408,26 @@ export default function RegisterExpert() {
       const userId = userData.user.id;
       const profileData = {
         id: userId,
-        username: data.username,
-        full_name: data.full_name,
+        username: formData.username,
+        full_name: formData.full_name,
         avatar_url: uploadedAvatarUrl, // Use the pre-uploaded avatar URL
-        website: data.website,
-        user_role: role, // Explicitly set the role
-        specialization: data.specialization,
-        title: data.title,
-        experience_years: Number(data.experience_years) || 0,
-        phone_number: data.phone_number,
-        company_name: data.company_name,
-        email: data.email,
-        bio: data.bio,
-        education: data.education,
-        certifications: data.certifications,
-        languages: data.languages,
-        appointment_fee: data.appointment_fee
-          ? Number(data.appointment_fee)
+        website: formData.website,
+        user_role: role, // Explicitly set the correct role
+        specialization: formData.specialization,
+        title: formData.title,
+        experience_years: Number(formData.experience_years) || 0,
+        phone_number: formData.phone_number,
+        company_name: formData.company_name,
+        email: formData.email,
+        bio: formData.bio,
+        education: formData.education,
+        certifications: formData.certifications,
+        languages: formData.languages,
+        appointment_fee: formData.appointment_fee
+          ? Number(formData.appointment_fee)
           : null,
-        session_duration: data.session_duration
-          ? Number(data.session_duration)
+        session_duration: formData.session_duration
+          ? Number(formData.session_duration)
           : null,
         expertise_area: selectedExpertise,
         status: "active",
@@ -438,6 +470,11 @@ export default function RegisterExpert() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Modified onSubmit to collect data instead of creating account
+  const onSubmit = async (data: FormData) => {
+    collectFormData(data);
   };
 
   const isLastStep = currentStep === formSteps.length - 1;
@@ -1020,13 +1057,22 @@ export default function RegisterExpert() {
             >
               Next <ArrowRight className="h-4 w-4" />
             </Button>
-          ) : (
+          ) : !formData ? (
             <Button
               type="submit"
               className="flex items-center gap-2 ml-auto"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Creating Account..." : "Create Account"}{" "}
+              Collect Information <ArrowRight className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={createProfile}
+              className="flex items-center gap-2 ml-auto"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating Profile..." : "Create Profile"}{" "}
               <ArrowRight className="h-4 w-4" />
             </Button>
           )}
