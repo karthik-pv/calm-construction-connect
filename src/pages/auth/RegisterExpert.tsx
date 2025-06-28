@@ -27,7 +27,7 @@ import {
   Phone,
   Globe,
   Image,
-  DollarSign,
+  PoundSterling,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -877,13 +877,13 @@ export default function RegisterExpert() {
               >
                 <motion.div variants={itemVariants} className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <PoundSterling className="h-4 w-4 text-muted-foreground" />
                     <Label htmlFor="appointment_fee">Appointment Fee</Label>
                   </div>
                   <Input
                     id="appointment_fee"
                     type="text"
-                    placeholder="$100"
+                    placeholder="£100"
                     {...form.register("appointment_fee")}
                     className="bg-transparent"
                   />

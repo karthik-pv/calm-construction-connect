@@ -710,7 +710,7 @@ export default function RegisterTherapist() {
                   <Input
                     id="appointment_fee"
                     type="text"
-                    placeholder="$100"
+                    placeholder="£100"
                     {...form.register("appointment_fee")}
                     className="bg-transparent"
                   />
