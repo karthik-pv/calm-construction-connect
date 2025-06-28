@@ -149,7 +149,9 @@ const formSchema = z.object({
   languages: z.string().optional(),
   appointment_fee: z.string().optional(),
   session_duration: z.string().optional(),
-  phone_number: z.string().optional(),
+  phone_number: z.string().min(10, {
+    message: "Phone number is required and must be at least 10 digits",
+  }),
   company_name: z.string().optional(),
   website: z
     .string()
@@ -380,9 +382,7 @@ export default function RegisterExpert() {
           authError.message.includes("already registered") ||
           authError.message.includes("already exists")
         ) {
-          toast.error(
-            "An account with this email already exists. Please try logging in instead."
-          );
+          toast.error("Account already exists, please login.");
         } else {
           toast.error(authError.message || "Registration failed");
         }
@@ -450,9 +450,7 @@ export default function RegisterExpert() {
         );
       } else {
         console.log("Profile created successfully");
-        toast.success(
-          `${expertTitle} account created successfully! Please check your email for verification, then you can log in.`
-        );
+        toast.success("Account creation successful, please login.");
         navigate("/login");
       }
     } catch (error: any) {
@@ -461,9 +459,7 @@ export default function RegisterExpert() {
         error.message.includes("already exists") ||
         error.message.includes("already registered")
       ) {
-        toast.error(
-          "An account with this email already exists. Please try logging in instead."
-        );
+        toast.error("Account already exists, please login.");
       } else {
         toast.error(`Registration failed: ${error.message || "Unknown error"}`);
       }
