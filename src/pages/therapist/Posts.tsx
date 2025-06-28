@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useTherapistPosts,
   useTogglePostLike,
@@ -46,22 +47,12 @@ export default function TherapistPosts() {
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-
-  // State for the post creation form
-  const [newPostContent, setNewPostContent] = useState("");
-  const [newPostTags, setNewPostTags] = useState("");
-  const [showNewPostForm, setShowNewPostForm] = useState(false);
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [uploadingImages, setUploadingImages] = useState(false);
-  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  const queryClient = useQueryClient();
 
   // State for editing
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [editTags, setEditTags] = useState("");
-
-  // Ref for file input
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch real posts using the hook
   const { data: posts = [], isLoading, error } = useTherapistPosts();
@@ -70,112 +61,6 @@ export default function TherapistPosts() {
   // Get mutations for interacting with posts
   const toggleLikeMutation = useTogglePostLike();
   const toggleSaveMutation = useTogglePostSave();
-
-  // Get mutation for creating posts
-  const createPostMutation = useCreateTherapistPost();
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const filesArray = Array.from(e.target.files);
-      setSelectedImages((prev) => [...prev, ...filesArray]);
-
-      // Create preview URLs
-      const newPreviewUrls = filesArray.map((file) =>
-        URL.createObjectURL(file)
-      );
-      setImagePreviewUrls((prev) => [...prev, ...newPreviewUrls]);
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
-
-    // Also remove the preview URL and revoke the object URL to free memory
-    const urlToRemove = imagePreviewUrls[index];
-    URL.revokeObjectURL(urlToRemove);
-    setImagePreviewUrls((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const uploadImages = async (): Promise<string[]> => {
-    if (selectedImages.length === 0) return [];
-
-    setUploadingImages(true);
-    const imageUrls: string[] = [];
-
-    try {
-      for (const file of selectedImages) {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${Math.random()
-          .toString(36)
-          .substring(2, 15)}.${fileExt}`;
-        const filePath = `post_images/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("post_images")
-          .upload(filePath, file);
-
-        if (uploadError) {
-          console.error("Error uploading image:", uploadError);
-          continue;
-        }
-
-        // Get public URL
-        const { data } = supabase.storage
-          .from("post_images")
-          .getPublicUrl(filePath);
-
-        if (data?.publicUrl) {
-          imageUrls.push(data.publicUrl);
-        }
-      }
-
-      return imageUrls;
-    } catch (e) {
-      console.error("Error in uploadImages:", e);
-      toast.error("Some images failed to upload");
-      return imageUrls; // Return any successfully uploaded images
-    } finally {
-      setUploadingImages(false);
-    }
-  };
-
-  const handleCreatePost = async () => {
-    if (!newPostContent.trim()) {
-      toast.error("Post content cannot be empty");
-      return;
-    }
-
-    const tags = newPostTags
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter((tag) => tag);
-
-    // First upload any images
-    const uploadedImageUrls = await uploadImages();
-
-    console.log("Creating post:", {
-      content: newPostContent,
-      tags,
-      images: uploadedImageUrls,
-    });
-
-    createPostMutation.mutate(
-      {
-        content: newPostContent,
-        tags,
-        images: uploadedImageUrls,
-      },
-      {
-        onSuccess: () => {
-          setNewPostContent("");
-          setNewPostTags("");
-          setSelectedImages([]);
-          setImagePreviewUrls([]);
-          setShowNewPostForm(false);
-        },
-      }
-    );
-  };
 
   const startEditingPost = (post: any) => {
     setEditingPostId(post.id);
@@ -239,7 +124,6 @@ export default function TherapistPosts() {
       toast.success("Post updated successfully");
 
       // Invalidate the cache to trigger a refetch
-      const queryClient = createPostMutation.getQueryClient();
       queryClient.invalidateQueries({ queryKey: ["therapist-posts"] });
     } catch (e) {
       console.error("Error saving edited post:", e);
@@ -267,7 +151,6 @@ export default function TherapistPosts() {
       toast.success("Post deleted successfully");
 
       // Invalidate the cache to trigger a refetch
-      const queryClient = createPostMutation.getQueryClient();
       queryClient.invalidateQueries({ queryKey: ["therapist-posts"] });
     } catch (e) {
       console.error("Error deleting post:", e);
@@ -361,107 +244,6 @@ export default function TherapistPosts() {
               Create Post
             </Button>
           </Link>
-        </div>
-
-        {/* Create new post button and form */}
-        <div className="mb-6">
-          <Button
-            onClick={() => setShowNewPostForm(!showNewPostForm)}
-            className="glass-button mb-4"
-          >
-            {showNewPostForm ? "Cancel" : "Create New Post"}
-          </Button>
-
-          {showNewPostForm && (
-            <Card className="glass-card p-4">
-              <CardHeader>
-                <CardTitle>Create New Post</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="block mb-2">Content</label>
-                  <textarea
-                    className="glass-input w-full"
-                    rows={4}
-                    value={newPostContent}
-                    onChange={(e) => setNewPostContent(e.target.value)}
-                    placeholder="Write your post content here..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-2">Tags (comma separated)</label>
-                  <Input
-                    value={newPostTags}
-                    onChange={(e) => setNewPostTags(e.target.value)}
-                    placeholder="anxiety, mental health, etc."
-                    className="glass-input"
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-2">Images</label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {imagePreviewUrls.map((url, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={url}
-                          alt={`Preview ${index}`}
-                          className="h-20 w-20 object-cover rounded-md"
-                        />
-                        <button
-                          className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1"
-                          onClick={() => removeImage(index)}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageChange}
-                    className="hidden"
-                    ref={fileInputRef}
-                  />
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="glass-button flex items-center gap-1"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Image className="h-4 w-4" />
-                    Add Images
-                  </Button>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  className="glass-button"
-                  onClick={handleCreatePost}
-                  disabled={
-                    createPostMutation.isPending ||
-                    !newPostContent.trim() ||
-                    uploadingImages
-                  }
-                >
-                  {createPostMutation.isPending || uploadingImages ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {uploadingImages ? "Uploading images..." : "Creating..."}
-                    </>
-                  ) : (
-                    "Create Post"
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
@@ -645,18 +427,6 @@ export default function TherapistPosts() {
                                   className="w-full rounded-lg object-cover max-h-96"
                                 />
                               ))}
-                            </div>
-                          )}
-
-                          {post.video && (
-                            <div className="aspect-video rounded-lg overflow-hidden">
-                              <iframe
-                                src={post.video}
-                                frameBorder="0"
-                                allow="autoplay; fullscreen; picture-in-picture"
-                                className="w-full h-full"
-                                title={`Post ${post.id} video`}
-                              ></iframe>
                             </div>
                           )}
                         </div>

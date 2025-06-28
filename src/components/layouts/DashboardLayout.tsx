@@ -65,7 +65,6 @@ const getNavItems = (role: UserRole): NavItem[] => {
         href: "/therapist/appointments",
         icon: Calendar,
       },
-      { label: "Availability", href: "/therapist/availability", icon: Clock },
       { label: "Chat", href: "/therapist/chat", icon: MessageCircle },
       { label: "Posts", href: "/therapist/posts", icon: FileText },
       { label: "Profile", href: "/therapist/profile", icon: User },
@@ -122,12 +121,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 to={item.href}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
-                  location.pathname === item.href ||
-                    (location.pathname.startsWith(item.href) &&
-                      item.href !==
-                        (profile.user_role === "patient"
-                          ? "/patient"
-                          : "/therapist"))
+                  location.pathname === item.href
                     ? "bg-primary/20 text-primary"
                     : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 )}
@@ -200,12 +194,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   to={item.href}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
-                    location.pathname === item.href ||
-                      (location.pathname.startsWith(item.href) &&
-                        item.href !==
-                          (profile.user_role === "patient"
-                            ? "/patient"
-                            : "/therapist"))
+                    location.pathname === item.href
                       ? "bg-primary/20 text-primary"
                       : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   )}

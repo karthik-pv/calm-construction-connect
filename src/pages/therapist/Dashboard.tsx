@@ -576,29 +576,6 @@ export default function ExpertDashboard() {
           </motion.div>
 
           <motion.div variants={item}>
-            <Link to="/therapist/availability">
-              <Card className="h-full glass-card hover:border-primary/50 transition-all duration-300">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Clock className="h-5 w-5 text-primary" />
-                    <span>Availability</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pb-2">
-                  <p className="text-xs text-muted-foreground">
-                    Set your weekly availability
-                  </p>
-                </CardContent>
-                <CardFooter className="pt-0">
-                  <Button className="w-full glass-button" size="sm">
-                    Manage Times
-                  </Button>
-                </CardFooter>
-              </Card>
-            </Link>
-          </motion.div>
-
-          <motion.div variants={item}>
             <Link to="/therapist/posts/create">
               <Card className="h-full glass-card hover:border-primary/50 transition-all duration-300">
                 <CardHeader className="pb-2">
@@ -1194,11 +1171,6 @@ export default function ExpertDashboard() {
                   <Button variant="outline" asChild>
                     <Link to="/therapist/appointments">
                       Full Appointment Manager
-                    </Link>
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <Link to="/therapist/availability">
-                      Manage Availability
                     </Link>
                   </Button>
                 </CardFooter>

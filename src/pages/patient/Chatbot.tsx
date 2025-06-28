@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Send, Phone, Languages, PhoneOff } from "lucide-react";
+import { Send, Mic, Languages, PhoneOff } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -573,7 +573,7 @@ export default function PatientChatbot() {
                       className="glass-button transition-all duration-300 border-white/10"
                       disabled={isCallActive}
                     >
-                      <Phone className="h-4 w-4 text-white/80" />
+                      <Mic className="h-4 w-4 text-white/80" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="glass-card border-border backdrop-blur-md">
@@ -597,7 +597,7 @@ export default function PatientChatbot() {
               <p className="text-xs text-muted-foreground/70 text-center">
                 {isCallActive
                   ? "Voice call is active - click 'End Call' to terminate"
-                  : "Click the phone icon to start a voice conversation in your preferred language"}
+                  : "Click the mic icon to start a voice conversation in your preferred language"}
               </p>
             </div>
           </CardContent>

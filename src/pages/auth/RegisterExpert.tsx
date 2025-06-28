@@ -8,16 +8,53 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthLayout } from "@/components/layouts/AuthLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { Check, ChevronsUpDown, Eye, EyeOff, Upload, ArrowRight, ArrowLeft, User, Mail, Lock, Award, Clock, MessageSquare, GraduationCap, Briefcase, Phone, Globe, Image, DollarSign } from "lucide-react";
+import {
+  Check,
+  ChevronsUpDown,
+  Eye,
+  EyeOff,
+  Upload,
+  ArrowRight,
+  ArrowLeft,
+  User,
+  Mail,
+  Lock,
+  Award,
+  Clock,
+  MessageSquare,
+  GraduationCap,
+  Briefcase,
+  Phone,
+  Globe,
+  Image,
+  DollarSign,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { UserRole } from "@/contexts/AuthContext";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 
 // Define expertise options by expert type
@@ -76,23 +113,37 @@ const expertTitles = {
 // Define descriptions by expert type
 const expertDescriptions = {
   therapist: "Join our platform to provide mental health support.",
-  relationship_expert: "Join our platform to help with relationship issues and family dynamics.",
-  financial_expert: "Join our platform to provide financial guidance and planning support.",
-  dating_coach: "Join our platform to help with dating, confidence, and relationship building.",
-  health_wellness_coach: "Join our platform to provide fitness, nutrition, and wellness guidance.",
+  relationship_expert:
+    "Join our platform to help with relationship issues and family dynamics.",
+  financial_expert:
+    "Join our platform to provide financial guidance and planning support.",
+  dating_coach:
+    "Join our platform to help with dating, confidence, and relationship building.",
+  health_wellness_coach:
+    "Join our platform to provide fitness, nutrition, and wellness guidance.",
 };
 
 const formSchema = z.object({
   full_name: z.string().min(2, { message: "Full name is required" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-  username: z.string().min(3, { message: "Username must be at least 3 characters" }).optional(),
+  password: z
+    .string()
+    .min(6, { message: "Password must be at least 6 characters" }),
+  username: z
+    .string()
+    .min(3, { message: "Username must be at least 3 characters" })
+    .optional(),
   specialization: z.string().min(2, { message: "Specialization is required" }),
   title: z.string().optional(),
-  experience_years: z.string().transform((val) => parseInt(val, 10)).refine((val) => !isNaN(val), { 
-    message: "Years of experience must be a number"
-  }),
-  bio: z.string().min(10, { message: "Bio is required and must be at least 10 characters" }),
+  experience_years: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .refine((val) => !isNaN(val), {
+      message: "Years of experience must be a number",
+    }),
+  bio: z
+    .string()
+    .min(10, { message: "Bio is required and must be at least 10 characters" }),
   education: z.string().optional(),
   certifications: z.string().optional(),
   languages: z.string().optional(),
@@ -100,7 +151,11 @@ const formSchema = z.object({
   session_duration: z.string().optional(),
   phone_number: z.string().optional(),
   company_name: z.string().optional(),
-  website: z.string().url({ message: "Please enter a valid URL" }).optional().or(z.literal("")),
+  website: z
+    .string()
+    .url({ message: "Please enter a valid URL" })
+    .optional()
+    .or(z.literal("")),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -111,32 +166,38 @@ const formSteps = [
     title: "Account Details",
     description: "Create your account credentials",
     fields: ["full_name", "username", "email", "password"],
-    icon: <User className="h-6 w-6" />
+    icon: <User className="h-6 w-6" />,
   },
   {
     title: "Professional Information",
     description: "Tell us about your expertise",
     fields: ["title", "specialization", "experience_years", "expertise"],
-    icon: <Award className="h-6 w-6" />
+    icon: <Award className="h-6 w-6" />,
   },
   {
     title: "About You",
     description: "Share your background and approach",
     fields: ["bio", "education", "certifications", "languages"],
-    icon: <MessageSquare className="h-6 w-6" />
+    icon: <MessageSquare className="h-6 w-6" />,
   },
   {
     title: "Practice Details",
     description: "Information about your practice",
-    fields: ["appointment_fee", "session_duration", "phone_number", "company_name", "website"],
-    icon: <Briefcase className="h-6 w-6" />
+    fields: [
+      "appointment_fee",
+      "session_duration",
+      "phone_number",
+      "company_name",
+      "website",
+    ],
+    icon: <Briefcase className="h-6 w-6" />,
   },
   {
     title: "Profile Picture",
     description: "Upload your professional photo",
     fields: ["profile_picture"],
-    icon: <Image className="h-6 w-6" />
-  }
+    icon: <Image className="h-6 w-6" />,
+  },
 ];
 
 export default function RegisterExpert() {
@@ -145,7 +206,13 @@ export default function RegisterExpert() {
   const { expertType } = useParams<{ expertType: string }>();
   const [showPassword, setShowPassword] = useState(false);
   const [profileImage, setProfileImage] = useState<File | null>(null);
-  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(
+    null
+  );
+  const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(
+    null
+  );
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [open, setOpen] = useState(false);
   const [selectedExpertise, setSelectedExpertise] = useState<string[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
@@ -153,14 +220,15 @@ export default function RegisterExpert() {
 
   // Validate expert type
   const validExpertType = expertType as keyof typeof expertiseOptions;
-  const isValidExpertType = Object.keys(expertiseOptions).includes(validExpertType);
+  const isValidExpertType =
+    Object.keys(expertiseOptions).includes(validExpertType);
 
-  const expertTitle = isValidExpertType 
-    ? expertTitles[validExpertType] 
+  const expertTitle = isValidExpertType
+    ? expertTitles[validExpertType]
     : "Professional";
 
-  const expertDescription = isValidExpertType 
-    ? expertDescriptions[validExpertType] 
+  const expertDescription = isValidExpertType
+    ? expertDescriptions[validExpertType]
     : "Join our platform to provide expertise.";
 
   const currentExpertiseOptions = isValidExpertType
@@ -187,64 +255,81 @@ export default function RegisterExpert() {
       company_name: "",
       website: "",
     },
-    mode: "onChange"
+    mode: "onChange",
   });
-  
-  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleProfileImageChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setProfileImage(file);
       setProfileImagePreview(URL.createObjectURL(file));
-    }
-  };
-  
-  const nextStep = async () => {
-    const fields = formSteps[currentStep].fields;
-    const validFields = fields.filter(field => field !== "expertise" && field !== "profile_picture");
-    
-    const isValid = await form.trigger(validFields as any);
-    if (isValid) {
-      setCurrentStep(prev => Math.min(prev + 1, formSteps.length - 1));
-      window.scrollTo(0, 0);
-    }
-  };
 
-  const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 0));
-    window.scrollTo(0, 0);
-  };
-  
-  const onSubmit = async (data: FormData) => {
-    setIsSubmitting(true);
-    let avatarUrl: string | undefined = undefined;
-
-    if (profileImage) {
-      const fileExt = profileImage.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
+      // Upload image immediately
+      setIsUploadingImage(true);
       try {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
         const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(filePath, profileImage);
+          .from("avatars")
+          .upload(filePath, file);
 
         if (uploadError) {
           throw uploadError;
         }
 
-        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-        avatarUrl = urlData?.publicUrl;
-
+        const { data: urlData } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(filePath);
+        setUploadedAvatarUrl(urlData?.publicUrl);
+        toast.success("Profile picture uploaded successfully!");
       } catch (error: any) {
-        console.error('Error uploading avatar:', error);
+        console.error("Error uploading avatar:", error);
         toast.error(`Failed to upload profile picture: ${error.message}`);
+        setUploadedAvatarUrl(null);
+      } finally {
+        setIsUploadingImage(false);
       }
     }
+  };
+
+  const nextStep = async () => {
+    const fields = formSteps[currentStep].fields;
+    const validFields = fields.filter(
+      (field) => field !== "expertise" && field !== "profile_picture"
+    );
+
+    const isValid = await form.trigger(validFields as any);
+    if (isValid) {
+      setCurrentStep((prev) => Math.min(prev + 1, formSteps.length - 1));
+      window.scrollTo(0, 0);
+    }
+  };
+
+  const prevStep = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 0));
+    window.scrollTo(0, 0);
+  };
+
+  const onSubmit = async (data: FormData) => {
+    setIsSubmitting(true);
 
     try {
       // Determine the role based on the URL parameter
-      const role = isValidExpertType ? validExpertType as UserRole : 'therapist';
-      
+      const role = isValidExpertType
+        ? (validExpertType as UserRole)
+        : "therapist";
+
+      console.log(
+        "Registering user with role:",
+        role,
+        "for expert type:",
+        expertType
+      );
+
       // Step 1: Create the user account in auth.users
       const { data: userData, error: authError } = await supabase.auth.signUp({
         email: data.email,
@@ -253,35 +338,52 @@ export default function RegisterExpert() {
           data: {
             user_role: role,
             full_name: data.full_name,
-          }
-        }
+          },
+        },
       });
-      
+
       if (authError) {
-        toast.error(authError.message || 'Registration failed');
-        console.error('Auth signup error:', authError);
+        // Check if the error is about user already existing
+        if (
+          authError.message.includes("already registered") ||
+          authError.message.includes("already exists")
+        ) {
+          toast.error(
+            "An account with this email already exists. Please try logging in instead."
+          );
+        } else {
+          toast.error(authError.message || "Registration failed");
+        }
+        console.error("Auth signup error:", authError);
         setIsSubmitting(false);
         return;
       }
-      
+
       if (!userData.user) {
-        toast.error('Failed to create account. Please try again.');
+        toast.error("Failed to create account. Please try again.");
         setIsSubmitting(false);
         return;
       }
-      
-      // Step 2: Directly create profile record with all user details
+
+      console.log(
+        "User created with ID:",
+        userData.user.id,
+        "and role metadata:",
+        userData.user.user_metadata
+      );
+
+      // Step 2: Create profile record with all user details
       const userId = userData.user.id;
       const profileData = {
         id: userId,
         username: data.username,
         full_name: data.full_name,
-        avatar_url: avatarUrl,
+        avatar_url: uploadedAvatarUrl, // Use the pre-uploaded avatar URL
         website: data.website,
-        user_role: role,
+        user_role: role, // Explicitly set the role
         specialization: data.specialization,
         title: data.title,
-        experience_years: parseInt(data.experience_years),
+        experience_years: Number(data.experience_years) || 0,
         phone_number: data.phone_number,
         company_name: data.company_name,
         email: data.email,
@@ -289,30 +391,50 @@ export default function RegisterExpert() {
         education: data.education,
         certifications: data.certifications,
         languages: data.languages,
-        appointment_fee: data.appointment_fee,
-        session_duration: data.session_duration,
+        appointment_fee: data.appointment_fee
+          ? Number(data.appointment_fee)
+          : null,
+        session_duration: data.session_duration
+          ? Number(data.session_duration)
+          : null,
         expertise_area: selectedExpertise,
-        status: 'active'
+        status: "active",
       };
+
+      console.log("Creating profile with data:", profileData);
 
       // Insert the profile data
       const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert(profileData, { 
-          onConflict: 'id',
-          ignoreDuplicates: false
+        .from("profiles")
+        .upsert(profileData, {
+          onConflict: "id",
+          ignoreDuplicates: false,
         });
 
       if (profileError) {
-        console.error('Error creating profile:', profileError);
-        toast.error('Account created but profile details could not be saved. Please contact support.');
+        console.error("Error creating profile:", profileError);
+        toast.error(
+          "Account created but profile details could not be saved. Please contact support."
+        );
       } else {
-        toast.success('Account created successfully! You can now log in.');
-        navigate('/login');
+        console.log("Profile created successfully");
+        toast.success(
+          `${expertTitle} account created successfully! Please check your email for verification, then you can log in.`
+        );
+        navigate("/login");
       }
     } catch (error: any) {
       console.error("Expert registration submission error:", error);
-      toast.error(`Registration failed: ${error.message || 'Unknown error'}`);
+      if (
+        error.message.includes("already exists") ||
+        error.message.includes("already registered")
+      ) {
+        toast.error(
+          "An account with this email already exists. Please try logging in instead."
+        );
+      } else {
+        toast.error(`Registration failed: ${error.message || "Unknown error"}`);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -327,42 +449,50 @@ export default function RegisterExpert() {
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
-      }
-    }
+        staggerChildren: 0.1,
+      },
+    },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
+    show: { opacity: 1, y: 0 },
   };
 
   const slideVariants = {
     hidden: { opacity: 0, x: 100 },
     visible: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -100 }
+    exit: { opacity: 0, x: -100 },
   };
 
   return (
-    <AuthLayout 
-      title={`Register as a ${expertTitle}`} 
+    <AuthLayout
+      title={`Register as a ${expertTitle}`}
       description={expertDescription}
       maxWidth="md:max-w-xl"
     >
       <div className="mb-8">
         <div className="flex justify-between mb-2">
-          <span className="text-sm text-muted-foreground">Step {currentStep + 1} of {formSteps.length}</span>
-          <span className="text-sm text-muted-foreground">{Math.round(progress)}% Complete</span>
+          <span className="text-sm text-muted-foreground">
+            Step {currentStep + 1} of {formSteps.length}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {Math.round(progress)}% Complete
+          </span>
         </div>
         <Progress value={progress} className="h-2" />
-        
+
         <div className="mt-6 flex items-center gap-4">
           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary">
             {formSteps[currentStep].icon}
           </div>
           <div>
-            <h3 className="text-lg font-semibold">{formSteps[currentStep].title}</h3>
-            <p className="text-sm text-muted-foreground">{formSteps[currentStep].description}</p>
+            <h3 className="text-lg font-semibold">
+              {formSteps[currentStep].title}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {formSteps[currentStep].description}
+            </p>
           </div>
         </div>
       </div>
@@ -380,7 +510,7 @@ export default function RegisterExpert() {
           >
             {/* Step 1: Account Details */}
             {currentStep === 0 && (
-              <motion.div 
+              <motion.div
                 className="space-y-6"
                 variants={containerVariants}
                 initial="hidden"
@@ -423,7 +553,7 @@ export default function RegisterExpert() {
                     </p>
                   )}
                 </motion.div>
-                
+
                 <motion.div variants={itemVariants} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
@@ -442,7 +572,7 @@ export default function RegisterExpert() {
                     </p>
                   )}
                 </motion.div>
-                
+
                 <motion.div variants={itemVariants} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Lock className="h-4 w-4 text-muted-foreground" />
@@ -463,7 +593,11 @@ export default function RegisterExpert() {
                       className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                   {form.formState.errors.password && (
@@ -477,7 +611,7 @@ export default function RegisterExpert() {
 
             {/* Step 2: Professional Information */}
             {currentStep === 1 && (
-              <motion.div 
+              <motion.div
                 className="space-y-6"
                 variants={containerVariants}
                 initial="hidden"
@@ -491,7 +625,11 @@ export default function RegisterExpert() {
                   <Input
                     id="title"
                     type="text"
-                    placeholder={isValidExpertType ? `${expertTitle}` : "Professional Title"}
+                    placeholder={
+                      isValidExpertType
+                        ? `${expertTitle}`
+                        : "Professional Title"
+                    }
                     {...form.register("title")}
                     className="bg-transparent"
                   />
@@ -501,7 +639,8 @@ export default function RegisterExpert() {
                     </p>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    Your title will be displayed on your profile (e.g., "Clinical Psychologist", "Relationship Counselor")
+                    Your title will be displayed on your profile (e.g.,
+                    "Clinical Psychologist", "Relationship Counselor")
                   </p>
                 </motion.div>
 
@@ -513,17 +652,19 @@ export default function RegisterExpert() {
                   <Input
                     id="specialization"
                     type="text"
-                    placeholder={isValidExpertType 
-                      ? validExpertType === 'financial_expert' 
-                        ? "Financial Planning" 
-                        : validExpertType === 'relationship_expert'
+                    placeholder={
+                      isValidExpertType
+                        ? validExpertType === "financial_expert"
+                          ? "Financial Planning"
+                          : validExpertType === "relationship_expert"
                           ? "Couples Therapy"
-                          : validExpertType === 'dating_coach'
-                            ? "Online Dating"
-                            : validExpertType === 'health_wellness_coach'
-                              ? "Nutrition & Fitness"
-                              : "Cognitive Behavioral Therapy"
-                      : "Your Specialization"}
+                          : validExpertType === "dating_coach"
+                          ? "Online Dating"
+                          : validExpertType === "health_wellness_coach"
+                          ? "Nutrition & Fitness"
+                          : "Cognitive Behavioral Therapy"
+                        : "Your Specialization"
+                    }
                     {...form.register("specialization")}
                     className="bg-transparent"
                   />
@@ -537,7 +678,9 @@ export default function RegisterExpert() {
                 <motion.div variants={itemVariants} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    <Label htmlFor="experience_years">Years of Experience</Label>
+                    <Label htmlFor="experience_years">
+                      Years of Experience
+                    </Label>
                   </div>
                   <Input
                     id="experience_years"
@@ -582,16 +725,21 @@ export default function RegisterExpert() {
                               <CommandItem
                                 key={option.value}
                                 onSelect={() => {
-                                  const newExpertise = selectedExpertise.includes(option.value)
-                                    ? selectedExpertise.filter((i) => i !== option.value)
-                                    : [...selectedExpertise, option.value];
+                                  const newExpertise =
+                                    selectedExpertise.includes(option.value)
+                                      ? selectedExpertise.filter(
+                                          (i) => i !== option.value
+                                        )
+                                      : [...selectedExpertise, option.value];
                                   setSelectedExpertise(newExpertise);
                                 }}
                               >
                                 <Check
                                   className={cn(
                                     "mr-2 h-4 w-4",
-                                    selectedExpertise.includes(option.value) ? "opacity-100" : "opacity-0"
+                                    selectedExpertise.includes(option.value)
+                                      ? "opacity-100"
+                                      : "opacity-0"
                                   )}
                                 />
                                 {option.label}
@@ -603,7 +751,8 @@ export default function RegisterExpert() {
                     </PopoverContent>
                   </Popover>
                   <p className="text-xs text-muted-foreground">
-                    Select all areas that you have experience with. This helps clients find the right match.
+                    Select all areas that you have experience with. This helps
+                    clients find the right match.
                   </p>
                 </motion.div>
               </motion.div>
@@ -611,7 +760,7 @@ export default function RegisterExpert() {
 
             {/* Step 3: About You */}
             {currentStep === 2 && (
-              <motion.div 
+              <motion.div
                 className="space-y-6"
                 variants={containerVariants}
                 initial="hidden"
@@ -634,7 +783,8 @@ export default function RegisterExpert() {
                     </p>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    Describe your approach, methods, and philosophy. This helps potential clients understand how you work.
+                    Describe your approach, methods, and philosophy. This helps
+                    potential clients understand how you work.
                   </p>
                 </motion.div>
 
@@ -669,7 +819,9 @@ export default function RegisterExpert() {
                 <motion.div variants={itemVariants} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Globe className="h-4 w-4 text-muted-foreground" />
-                    <Label htmlFor="languages">Languages (comma separated)</Label>
+                    <Label htmlFor="languages">
+                      Languages (comma separated)
+                    </Label>
                   </div>
                   <Input
                     id="languages"
@@ -684,7 +836,7 @@ export default function RegisterExpert() {
 
             {/* Step 4: Practice Details */}
             {currentStep === 3 && (
-              <motion.div 
+              <motion.div
                 className="space-y-6"
                 variants={containerVariants}
                 initial="hidden"
@@ -738,7 +890,9 @@ export default function RegisterExpert() {
                 <motion.div variants={itemVariants} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Briefcase className="h-4 w-4 text-muted-foreground" />
-                    <Label htmlFor="company_name">Practice or Company Name</Label>
+                    <Label htmlFor="company_name">
+                      Practice or Company Name
+                    </Label>
                   </div>
                   <Input
                     id="company_name"
@@ -772,7 +926,7 @@ export default function RegisterExpert() {
 
             {/* Step 5: Profile Picture */}
             {currentStep === 4 && (
-              <motion.div 
+              <motion.div
                 className="space-y-6"
                 variants={containerVariants}
                 initial="hidden"
@@ -783,13 +937,13 @@ export default function RegisterExpert() {
                     <Image className="h-4 w-4 text-muted-foreground" />
                     <Label htmlFor="profilePic">Profile Picture</Label>
                   </div>
-                  
+
                   <div className="flex flex-col items-center justify-center gap-6 py-8">
                     {profileImagePreview ? (
                       <div className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-primary/20">
-                        <img 
-                          src={profileImagePreview} 
-                          alt="Profile preview" 
+                        <img
+                          src={profileImagePreview}
+                          alt="Profile preview"
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -798,24 +952,45 @@ export default function RegisterExpert() {
                         <User className="h-16 w-16 text-muted-foreground/50" />
                       </div>
                     )}
-                    
-                    <label 
+
+                    <label
                       htmlFor="profilePic"
-                      className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                      className={cn(
+                        "cursor-pointer flex items-center gap-2 px-4 py-2 rounded-md transition-colors",
+                        isUploadingImage
+                          ? "bg-muted text-muted-foreground cursor-not-allowed"
+                          : uploadedAvatarUrl
+                          ? "bg-green-500/10 text-green-400 hover:bg-green-500/20"
+                          : "bg-primary/10 text-primary hover:bg-primary/20"
+                      )}
                     >
                       <Upload className="h-4 w-4" />
-                      {profileImage ? "Change Photo" : "Upload Photo"}
+                      {isUploadingImage
+                        ? "Uploading..."
+                        : uploadedAvatarUrl
+                        ? "✓ Uploaded - Change Photo"
+                        : profileImage
+                        ? "Change Photo"
+                        : "Upload Photo"}
                     </label>
-                    <input 
-                      id="profilePic" 
-                      type="file" 
-                      accept="image/*" 
+                    <input
+                      id="profilePic"
+                      type="file"
+                      accept="image/*"
                       onChange={handleProfileImageChange}
                       className="hidden"
+                      disabled={isUploadingImage}
                     />
-                    
+
                     <p className="text-sm text-muted-foreground text-center max-w-md">
-                      A professional profile picture helps build trust with potential clients. Choose a high-quality photo with good lighting and a neutral background.
+                      A professional profile picture helps build trust with
+                      potential clients. Choose a high-quality photo with good
+                      lighting and a neutral background.
+                      {uploadedAvatarUrl && (
+                        <span className="block mt-2 text-green-400 text-xs">
+                          ✓ Your profile picture has been uploaded successfully!
+                        </span>
+                      )}
                     </p>
                   </div>
                 </motion.div>
@@ -836,7 +1011,7 @@ export default function RegisterExpert() {
               <ArrowLeft className="h-4 w-4" /> Back
             </Button>
           )}
-          
+
           {!isLastStep ? (
             <Button
               type="button"
@@ -851,12 +1026,13 @@ export default function RegisterExpert() {
               className="flex items-center gap-2 ml-auto"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Creating Account..." : "Create Account"} <ArrowRight className="h-4 w-4" />
+              {isSubmitting ? "Creating Account..." : "Create Account"}{" "}
+              <ArrowRight className="h-4 w-4" />
             </Button>
           )}
         </div>
       </form>
-      
+
       <div className="mt-8 text-center text-sm">
         <span className="text-muted-foreground">Already have an account?</span>{" "}
         <Link to="/login" className="font-medium text-primary hover:underline">
@@ -865,10 +1041,13 @@ export default function RegisterExpert() {
       </div>
       <div className="mt-2 text-center text-sm">
         <span className="text-muted-foreground">Are you a patient?</span>{" "}
-        <Link to="/register/patient" className="font-medium text-primary hover:underline">
+        <Link
+          to="/register/patient"
+          className="font-medium text-primary hover:underline"
+        >
           Register here
         </Link>
       </div>
     </AuthLayout>
   );
-} 
+}

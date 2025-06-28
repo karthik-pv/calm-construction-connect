@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { FilePlus, Image, Loader2, Video, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function CreatePost() {
   const { user } = useAuth();
@@ -77,6 +78,30 @@ export default function CreatePost() {
     setImagePreviewUrls(newPreviews);
   };
 
+  const uploadImageToSupabase = async (file: File): Promise<string> => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2)}.${fileExt}`;
+    const filePath = `post_images/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from("post_images")
+      .upload(filePath, file);
+
+    if (error) {
+      console.error("Error uploading image:", error);
+      throw error;
+    }
+
+    // Get the public URL
+    const { data: urlData } = supabase.storage
+      .from("post_images")
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -85,17 +110,104 @@ export default function CreatePost() {
       return;
     }
 
+    if (!user?.id) {
+      toast.error("You must be logged in to create a post");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      // In a real app, you would upload the post to a database
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      console.log("Starting post creation...");
+
+      // 1. Create the post in therapist_posts table
+      const { data: postData, error: postError } = await supabase
+        .from("therapist_posts")
+        .insert({
+          author_id: user.id,
+          content: content.trim(),
+          likes: 0,
+          comments: 0,
+          shares: 0,
+        })
+        .select("id")
+        .single();
+
+      if (postError) {
+        console.error("Error creating post:", postError);
+        throw postError;
+      }
+
+      if (!postData?.id) {
+        throw new Error("No post ID returned");
+      }
+
+      const postId = postData.id;
+      console.log("Post created with ID:", postId);
+
+      // 2. Upload images to storage and save URLs to post_images table
+      if (selectedImages.length > 0) {
+        console.log(`Uploading ${selectedImages.length} images...`);
+
+        const imageUploadPromises = selectedImages.map(async (file, index) => {
+          try {
+            const imageUrl = await uploadImageToSupabase(file);
+            console.log(`Image ${index + 1} uploaded:`, imageUrl);
+
+            // Insert image URL into post_images table
+            const { error: imageError } = await supabase
+              .from("post_images")
+              .insert({
+                post_id: postId,
+                image_url: imageUrl,
+                position: index,
+              });
+
+            if (imageError) {
+              console.error(
+                `Error saving image ${index + 1} to database:`,
+                imageError
+              );
+              throw imageError;
+            }
+
+            return imageUrl;
+          } catch (error) {
+            console.error(`Failed to upload image ${index + 1}:`, error);
+            throw error;
+          }
+        });
+
+        await Promise.all(imageUploadPromises);
+        console.log("All images uploaded successfully");
+      }
+
+      // 3. Add tags to post_tags table
+      if (tags.length > 0) {
+        console.log(`Adding ${tags.length} tags...`);
+
+        const tagRows = tags.map((tag) => ({
+          post_id: postId,
+          tag: tag,
+        }));
+
+        const { error: tagsError } = await supabase
+          .from("post_tags")
+          .insert(tagRows);
+
+        if (tagsError) {
+          console.error("Error adding tags:", tagsError);
+          // Don't throw here, tags are not critical
+        } else {
+          console.log("Tags added successfully");
+        }
+      }
 
       toast.success("Post created successfully!");
       navigate("/therapist/posts");
     } catch (error) {
-      toast.error("Failed to create post. Please try again.");
       console.error("Error creating post:", error);
+      toast.error("Failed to create post. Please try again.");
     } finally {
       setSubmitting(false);
     }

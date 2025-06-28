@@ -301,8 +301,8 @@ export default function TherapistAppointments() {
       appointmentId,
       status,
       patientId,
-      appointmentDate,
-      appointmentTime,
+      appointmentDateStr: appointmentDate,
+      appointmentTimeStr: appointmentTime,
     });
   };
 
@@ -339,9 +339,6 @@ export default function TherapistAppointments() {
       <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
       <h3 className="text-lg font-semibold mb-2">No Appointments</h3>
       <p className="text-muted-foreground max-w-sm">{message}</p>
-      <Button asChild className="mt-4">
-        <Link to="/therapist/availability">Manage Availability</Link>
-      </Button>
     </div>
   );
 
@@ -353,9 +350,6 @@ export default function TherapistAppointments() {
             title="Appointments"
             subtitle="Manage your patient appointments"
           />
-          <Button asChild>
-            <Link to="/therapist/availability">Manage Availability</Link>
-          </Button>
         </div>
 
         {isLoading ? (
