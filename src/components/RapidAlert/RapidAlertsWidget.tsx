@@ -23,6 +23,15 @@ export function RapidAlertsWidget() {
     }
   }, [alerts]);
 
+  const handleAlertAndNavigate = (alertId: string, patientId: string) => {
+    handleAlert(alertId, {
+      onSuccess: () => {
+        // Navigate to patient's profile page after successfully handling the alert
+        navigate(`/therapist/patients/${patientId}`);
+      },
+    });
+  };
+
   if (isLoading) {
     return (
       <Card className="bg-black/40 border-border backdrop-blur-md">
@@ -82,7 +91,9 @@ export function RapidAlertsWidget() {
                 <Button
                   variant="default"
                   size="sm"
-                  onClick={() => handleAlert(alert.id)}
+                  onClick={() =>
+                    handleAlertAndNavigate(alert.id, alert.patient_id)
+                  }
                 >
                   Handle Alert
                 </Button>

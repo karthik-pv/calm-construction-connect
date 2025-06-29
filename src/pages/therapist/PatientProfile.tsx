@@ -201,6 +201,46 @@ export default function PatientProfile() {
     }
   };
 
+  // Handle starting a conversation with the patient
+  const handleStartConversation = async () => {
+    if (!patient || !profile?.id) return;
+
+    try {
+      // Check if there's already a conversation between therapist and patient
+      const { data: existingMessages } = await supabase
+        .from("chat_messages")
+        .select("id")
+        .or(
+          `and(sender_id.eq.${profile.id},receiver_id.eq.${patient.id}),and(sender_id.eq.${patient.id},receiver_id.eq.${profile.id})`
+        )
+        .limit(1);
+
+      // If no existing conversation, create an initial message
+      if (!existingMessages || existingMessages.length === 0) {
+        const { error } = await supabase.from("chat_messages").insert([
+          {
+            sender_id: profile.id,
+            receiver_id: patient.id,
+            content: "Hello! I'm reaching out to start our conversation.",
+            read: false,
+          },
+        ]);
+
+        if (error) {
+          console.error("Error creating initial message:", error);
+          toast.error("Failed to start conversation");
+          return;
+        }
+      }
+
+      // Navigate to the chat with this patient
+      navigate(`/therapist/chat/${patient.id}`);
+    } catch (error) {
+      console.error("Error starting conversation:", error);
+      toast.error("Failed to start conversation");
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="container mx-auto p-6">
@@ -272,7 +312,7 @@ export default function PatientProfile() {
                   <Button
                     variant="outline"
                     className="glass-button"
-                    onClick={() => navigate(`/therapist/chat/${patient.id}`)}
+                    onClick={handleStartConversation}
                   >
                     Send Message
                   </Button>
