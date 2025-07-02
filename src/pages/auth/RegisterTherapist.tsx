@@ -27,6 +27,8 @@ import {
   Phone,
   Globe,
   Image,
+  X,
+  Plus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -54,19 +56,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-
-const expertiseOptions = [
-  { label: "Anxiety", value: "anxiety" },
-  { label: "Depression", value: "depression" },
-  { label: "Work Stress", value: "work-stress" },
-  { label: "PTSD", value: "ptsd" },
-  { label: "Addiction", value: "addiction" },
-  { label: "Grief", value: "grief" },
-  { label: "Relationship Issues", value: "relationship-issues" },
-  { label: "Trauma", value: "trauma" },
-  { label: "Self-Esteem", value: "self-esteem" },
-  { label: "Anger Management", value: "anger-management" },
-];
+import { Badge } from "@/components/ui/badge";
 
 const formSchema = z.object({
   full_name: z.string().min(2, { message: "Full name is required" }),
@@ -78,7 +68,6 @@ const formSchema = z.object({
     .string()
     .min(3, { message: "Username must be at least 3 characters" })
     .optional(),
-  specialization: z.string().min(2, { message: "Specialization is required" }),
   title: z.string().optional(),
   experience_years: z
     .string()
@@ -118,7 +107,7 @@ const formSteps = [
   {
     title: "Professional Information",
     description: "Tell us about your expertise",
-    fields: ["title", "specialization", "experience_years", "expertise"],
+    fields: ["title", "experience_years", "expertise"],
     icon: <Award className="h-6 w-6" />,
   },
   {
@@ -155,10 +144,15 @@ export default function RegisterTherapist() {
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(
     null
   );
-  const [open, setOpen] = useState(false);
+  const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(
+    null
+  );
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [selectedExpertise, setSelectedExpertise] = useState<string[]>([]);
+  const [expertiseInput, setExpertiseInput] = useState("");
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState<FormData | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -167,7 +161,6 @@ export default function RegisterTherapist() {
       email: "",
       password: "",
       username: "",
-      specialization: "",
       title: "",
       experience_years: 0,
       bio: "",
@@ -183,11 +176,41 @@ export default function RegisterTherapist() {
     mode: "onChange",
   });
 
-  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfileImageChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setProfileImage(file);
       setProfileImagePreview(URL.createObjectURL(file));
+
+      // Upload image immediately as requested
+      setIsUploadingImage(true);
+      try {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, file);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(filePath);
+        setUploadedAvatarUrl(urlData?.publicUrl);
+        toast.success("Profile picture uploaded successfully!");
+      } catch (error: any) {
+        console.error("Error uploading avatar:", error);
+        toast.error(`Failed to upload profile picture: ${error.message}`);
+        setUploadedAvatarUrl(null);
+      } finally {
+        setIsUploadingImage(false);
+      }
     }
   };
 
@@ -198,6 +221,13 @@ export default function RegisterTherapist() {
     );
 
     const isValid = await form.trigger(validFields as any);
+
+    // Additional validation for expertise on step 1 (Professional Information)
+    if (currentStep === 1 && selectedExpertise.length === 0) {
+      toast.error("Please add at least one area of expertise");
+      return;
+    }
+
     if (isValid) {
       setCurrentStep((prev) => Math.min(prev + 1, formSteps.length - 1));
       window.scrollTo(0, 0);
@@ -209,43 +239,59 @@ export default function RegisterTherapist() {
     window.scrollTo(0, 0);
   };
 
-  const onSubmit = async (data: FormData) => {
-    setIsSubmitting(true);
-    let avatarUrl: string | undefined = undefined;
-
-    if (profileImage) {
-      const fileExt = profileImage.name.split(".").pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      try {
-        const { error: uploadError } = await supabase.storage
-          .from("avatars")
-          .upload(filePath, profileImage);
-
-        if (uploadError) {
-          throw uploadError;
-        }
-
-        const { data: urlData } = supabase.storage
-          .from("avatars")
-          .getPublicUrl(filePath);
-        avatarUrl = urlData?.publicUrl;
-      } catch (error: any) {
-        console.error("Error uploading avatar:", error);
-        toast.error(`Failed to upload profile picture: ${error.message}`);
-      }
+  // Add expertise area
+  const addExpertise = () => {
+    const trimmedInput = expertiseInput.trim();
+    if (trimmedInput && !selectedExpertise.includes(trimmedInput)) {
+      setSelectedExpertise([...selectedExpertise, trimmedInput]);
+      setExpertiseInput("");
     }
+  };
+
+  // Remove expertise area
+  const removeExpertise = (expertise: string) => {
+    setSelectedExpertise(selectedExpertise.filter((exp) => exp !== expertise));
+  };
+
+  // Handle Enter key press in expertise input
+  const handleExpertiseKeyPress = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addExpertise();
+    }
+  };
+
+  // New function to handle form data collection (no account creation yet)
+  const collectFormData = (data: FormData) => {
+    setFormData(data);
+    console.log("Form data collected:", data);
+
+    // Show confirmation or preview step
+    toast.success(
+      "All information collected for Therapist registration! Review and create your profile."
+    );
+  };
+
+  // New function to actually create the account and profile
+  const createProfile = async () => {
+    if (!formData) {
+      toast.error("Form data not found. Please fill out the form again.");
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
       // Step 1: Create the user account in auth.users
       const { data: userData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
+        email: formData.email,
+        password: formData.password,
         options: {
           data: {
             user_role: "therapist",
-            full_name: data.full_name,
+            full_name: formData.full_name,
           },
         },
       });
@@ -271,34 +317,58 @@ export default function RegisterTherapist() {
         return;
       }
 
+      console.log(
+        "User created with ID:",
+        userData.user.id,
+        "and role metadata:",
+        userData.user.user_metadata
+      );
+
+      // Debug: Log expertise data
+      console.log("Selected expertise before saving:", selectedExpertise);
+      console.log("Expertise array length:", selectedExpertise.length);
+
+      // Convert expertise array to JSON string for storage in specialization field (same as profile update)
+      const specialization = JSON.stringify(selectedExpertise);
+      console.log(
+        "Converted expertise to JSON for specialization field:",
+        specialization
+      );
+
       // Step 2: Directly create profile record with all user details
       const userId = userData.user.id;
       const profileData = {
         id: userId,
-        username: data.username,
-        full_name: data.full_name,
-        avatar_url: avatarUrl,
-        website: data.website,
+        username: formData.username,
+        full_name: formData.full_name,
+        avatar_url: uploadedAvatarUrl, // Use the pre-uploaded avatar URL
+        website: formData.website,
         user_role: "therapist",
-        specialization: data.specialization,
-        title: data.title,
-        experience_years: data.experience_years,
-        phone_number: data.phone_number,
-        company_name: data.company_name,
-        email: data.email,
-        bio: data.bio,
-        education: data.education,
-        certifications: data.certifications,
-        languages: data.languages,
-        appointment_fee: data.appointment_fee
-          ? parseFloat(data.appointment_fee)
+        title: formData.title,
+        experience_years: formData.experience_years,
+        phone_number: formData.phone_number,
+        company_name: formData.company_name,
+        email: formData.email,
+        bio: formData.bio,
+        education: formData.education,
+        certifications: formData.certifications,
+        languages: formData.languages,
+        appointment_fee: formData.appointment_fee
+          ? parseFloat(formData.appointment_fee)
           : null,
-        session_duration: data.session_duration
-          ? parseInt(data.session_duration)
+        session_duration: formData.session_duration
+          ? parseInt(formData.session_duration)
           : null,
-        expertise_area: selectedExpertise,
+        specialization: specialization, // Save expertise as JSON string in specialization field
         status: "active",
       };
+
+      // Debug: Log the complete profile data
+      console.log("Creating profile with data:", profileData);
+      console.log(
+        "Profile data specialization (expertise):",
+        profileData.specialization
+      );
 
       // Insert the profile data
       const { error: profileError } = await supabase
@@ -310,10 +380,17 @@ export default function RegisterTherapist() {
 
       if (profileError) {
         console.error("Error creating profile:", profileError);
+        console.error("Profile error details:", profileError.details);
+        console.error("Profile error hint:", profileError.hint);
         toast.error(
           "Account created but profile details could not be saved. Please contact support."
         );
       } else {
+        console.log("Profile created successfully");
+        console.log(
+          "Expertise saved successfully in specialization field:",
+          specialization
+        );
         toast.success("Account creation successful, please login.");
         navigate("/login");
       }
@@ -330,6 +407,11 @@ export default function RegisterTherapist() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Modified onSubmit to collect data instead of creating account
+  const onSubmit = async (data: FormData) => {
+    collectFormData(data);
   };
 
   const isLastStep = currentStep === formSteps.length - 1;
@@ -528,25 +610,6 @@ export default function RegisterTherapist() {
 
                 <motion.div variants={itemVariants} className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Award className="h-4 w-4 text-muted-foreground" />
-                    <Label htmlFor="specialization">Specialization</Label>
-                  </div>
-                  <Input
-                    id="specialization"
-                    type="text"
-                    placeholder="Cognitive Behavioral Therapy"
-                    {...form.register("specialization")}
-                    className="bg-transparent"
-                  />
-                  {form.formState.errors.specialization && (
-                    <p className="text-sm text-destructive">
-                      {form.formState.errors.specialization.message}
-                    </p>
-                  )}
-                </motion.div>
-
-                <motion.div variants={itemVariants} className="space-y-2">
-                  <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <Label htmlFor="experience_years">
                       Years of Experience
@@ -568,58 +631,63 @@ export default function RegisterTherapist() {
 
                 <motion.div variants={itemVariants} className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-muted-foreground" />
+                    <Award className="h-4 w-4 text-muted-foreground" />
                     <Label htmlFor="expertise">Areas of Expertise</Label>
                   </div>
-                  <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <Input
+                        id="expertise"
+                        type="text"
+                        placeholder="Enter an area of expertise (e.g., Anxiety, Depression, PTSD)"
+                        value={expertiseInput}
+                        onChange={(e) => setExpertiseInput(e.target.value)}
+                        onKeyPress={handleExpertiseKeyPress}
+                        className="bg-transparent flex-1"
+                      />
                       <Button
+                        type="button"
                         variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-full justify-between bg-transparent"
+                        size="sm"
+                        onClick={addExpertise}
+                        disabled={!expertiseInput.trim()}
+                        className="shrink-0"
                       >
-                        {selectedExpertise.length > 0
-                          ? `${selectedExpertise.length} areas selected`
-                          : "Select areas of expertise..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        <Plus className="h-4 w-4" />
                       </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Search expertise..." />
-                        <CommandEmpty>No expertise found.</CommandEmpty>
-                        <CommandList>
-                          <CommandGroup>
-                            {expertiseOptions.map((option) => (
-                              <CommandItem
-                                key={option.value}
-                                onSelect={() => {
-                                  const newExpertise =
-                                    selectedExpertise.includes(option.value)
-                                      ? selectedExpertise.filter(
-                                          (i) => i !== option.value
-                                        )
-                                      : [...selectedExpertise, option.value];
-                                  setSelectedExpertise(newExpertise);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedExpertise.includes(option.value)
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {option.label}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                    </div>
+
+                    {selectedExpertise.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedExpertise.map((expertise, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center gap-1 pr-1"
+                          >
+                            {expertise}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                              onClick={() => removeExpertise(expertise)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+
+                    {selectedExpertise.length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Add at least one area of expertise. Examples: Anxiety,
+                        Depression, PTSD, Relationship Issues, Trauma,
+                        Addiction, Grief, Work Stress, etc.
+                      </p>
+                    )}
+                  </div>
                 </motion.div>
               </motion.div>
             )}
@@ -791,9 +859,7 @@ export default function RegisterTherapist() {
                 <motion.div variants={itemVariants} className="space-y-4">
                   <div className="flex items-center gap-2">
                     <Image className="h-4 w-4 text-muted-foreground" />
-                    <Label htmlFor="profilePic">
-                      Profile Picture (Optional)
-                    </Label>
+                    <Label htmlFor="profilePic">Profile Picture</Label>
                   </div>
 
                   <div className="flex flex-col items-center justify-center gap-6 py-8">
@@ -813,10 +879,23 @@ export default function RegisterTherapist() {
 
                     <label
                       htmlFor="profilePic"
-                      className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                      className={cn(
+                        "cursor-pointer flex items-center gap-2 px-4 py-2 rounded-md transition-colors",
+                        isUploadingImage
+                          ? "bg-muted text-muted-foreground cursor-not-allowed"
+                          : uploadedAvatarUrl
+                          ? "bg-green-500/10 text-green-400 hover:bg-green-500/20"
+                          : "bg-primary/10 text-primary hover:bg-primary/20"
+                      )}
                     >
                       <Upload className="h-4 w-4" />
-                      {profileImage ? "Change Photo" : "Upload Photo"}
+                      {isUploadingImage
+                        ? "Uploading..."
+                        : uploadedAvatarUrl
+                        ? "✓ Uploaded - Change Photo"
+                        : profileImage
+                        ? "Change Photo"
+                        : "Upload Photo"}
                     </label>
                     <input
                       id="profilePic"
@@ -824,11 +903,18 @@ export default function RegisterTherapist() {
                       accept="image/*"
                       onChange={handleProfileImageChange}
                       className="hidden"
+                      disabled={isUploadingImage}
                     />
 
                     <p className="text-sm text-muted-foreground text-center max-w-md">
-                      Upload a professional photo of yourself. A good profile
-                      picture helps build trust with potential clients.
+                      A professional profile picture helps build trust with
+                      potential clients. Choose a high-quality photo with good
+                      lighting and a neutral background.
+                      {uploadedAvatarUrl && (
+                        <span className="block mt-2 text-green-400 text-xs">
+                          ✓ Your profile picture has been uploaded successfully!
+                        </span>
+                      )}
                     </p>
                   </div>
                 </motion.div>
@@ -858,13 +944,22 @@ export default function RegisterTherapist() {
             >
               Next <ArrowRight className="h-4 w-4" />
             </Button>
-          ) : (
+          ) : !formData ? (
             <Button
               type="submit"
               className="flex items-center gap-2 ml-auto"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Creating Account..." : "Create Account"}{" "}
+              Collect Information <ArrowRight className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={createProfile}
+              className="flex items-center gap-2 ml-auto"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating Profile..." : "Create Profile"}{" "}
               <ArrowRight className="h-4 w-4" />
             </Button>
           )}

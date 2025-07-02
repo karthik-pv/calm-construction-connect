@@ -28,6 +28,8 @@ import {
   Globe,
   Image,
   PoundSterling,
+  X,
+  Plus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -56,50 +58,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-
-// Define expertise options by expert type
-const expertiseOptions = {
-  therapist: [
-    { label: "Anxiety", value: "anxiety" },
-    { label: "Depression", value: "depression" },
-    { label: "Work Stress", value: "work-stress" },
-    { label: "PTSD", value: "ptsd" },
-    { label: "Addiction", value: "addiction" },
-    { label: "Grief", value: "grief" },
-    { label: "Relationship Issues", value: "relationship-issues" },
-    { label: "Trauma", value: "trauma" },
-    { label: "Self-Esteem", value: "self-esteem" },
-    { label: "Anger Management", value: "anger-management" },
-  ],
-  relationship_expert: [
-    { label: "Conflict Resolution", value: "conflict-resolution" },
-    { label: "Family Bonding", value: "family-bonding" },
-    { label: "Communication Strategies", value: "communication-strategies" },
-    { label: "Emotional Stress Management", value: "emotional-stress" },
-    { label: "Separation/Infidelity Support", value: "separation-support" },
-  ],
-  financial_expert: [
-    { label: "Budget Planning", value: "budget-planning" },
-    { label: "Debt Management", value: "debt-management" },
-    { label: "Saving Plans", value: "saving-plans" },
-    { label: "Credit Improvement", value: "credit-improvement" },
-    { label: "Retirement Planning", value: "retirement-planning" },
-  ],
-  dating_coach: [
-    { label: "Confidence Building", value: "confidence-building" },
-    { label: "Online Dating", value: "online-dating" },
-    { label: "Healthy Dating Habits", value: "dating-habits" },
-    { label: "Post-Divorce Support", value: "post-divorce-support" },
-    { label: "Dating Communication", value: "dating-communication" },
-  ],
-  health_wellness_coach: [
-    { label: "Fitness Plans", value: "fitness-plans" },
-    { label: "Nutrition Guidance", value: "nutrition" },
-    { label: "Stress Management", value: "stress-management" },
-    { label: "Sleep Hygiene", value: "sleep-hygiene" },
-    { label: "Substance Use Reduction", value: "substance-reduction" },
-  ],
-};
+import { Badge } from "@/components/ui/badge";
 
 // Define titles by expert type
 const expertTitles = {
@@ -133,7 +92,6 @@ const formSchema = z.object({
     .string()
     .min(3, { message: "Username must be at least 3 characters" })
     .optional(),
-  specialization: z.string().min(2, { message: "Specialization is required" }),
   title: z.string().optional(),
   experience_years: z
     .string()
@@ -173,7 +131,7 @@ const formSteps = [
   {
     title: "Professional Information",
     description: "Tell us about your expertise",
-    fields: ["title", "specialization", "experience_years", "expertise"],
+    fields: ["title", "experience_years", "expertise"],
     icon: <Award className="h-6 w-6" />,
   },
   {
@@ -215,8 +173,8 @@ export default function RegisterExpert() {
     null
   );
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [open, setOpen] = useState(false);
   const [selectedExpertise, setSelectedExpertise] = useState<string[]>([]);
+  const [expertiseInput, setExpertiseInput] = useState("");
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData | null>(null);
@@ -232,9 +190,8 @@ export default function RegisterExpert() {
   const expertType = getExpertTypeFromPath();
 
   // Validate expert type
-  const validExpertType = expertType as keyof typeof expertiseOptions;
-  const isValidExpertType =
-    Object.keys(expertiseOptions).includes(validExpertType);
+  const validExpertType = expertType as keyof typeof expertTitles;
+  const isValidExpertType = Object.keys(expertTitles).includes(validExpertType);
 
   const expertTitle = isValidExpertType
     ? expertTitles[validExpertType]
@@ -244,10 +201,6 @@ export default function RegisterExpert() {
     ? expertDescriptions[validExpertType]
     : "Join our platform to provide expertise.";
 
-  const currentExpertiseOptions = isValidExpertType
-    ? expertiseOptions[validExpertType]
-    : expertiseOptions.therapist;
-
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -255,7 +208,6 @@ export default function RegisterExpert() {
       email: "",
       password: "",
       username: "",
-      specialization: "",
       title: "",
       experience_years: 0,
       bio: "",
@@ -316,6 +268,13 @@ export default function RegisterExpert() {
     );
 
     const isValid = await form.trigger(validFields as any);
+
+    // Additional validation for expertise on step 1 (Professional Information)
+    if (currentStep === 1 && selectedExpertise.length === 0) {
+      toast.error("Please add at least one area of expertise");
+      return;
+    }
+
     if (isValid) {
       setCurrentStep((prev) => Math.min(prev + 1, formSteps.length - 1));
       window.scrollTo(0, 0);
@@ -325,6 +284,30 @@ export default function RegisterExpert() {
   const prevStep = () => {
     setCurrentStep((prev) => Math.max(prev - 1, 0));
     window.scrollTo(0, 0);
+  };
+
+  // Add expertise area
+  const addExpertise = () => {
+    const trimmedInput = expertiseInput.trim();
+    if (trimmedInput && !selectedExpertise.includes(trimmedInput)) {
+      setSelectedExpertise([...selectedExpertise, trimmedInput]);
+      setExpertiseInput("");
+    }
+  };
+
+  // Remove expertise area
+  const removeExpertise = (expertise: string) => {
+    setSelectedExpertise(selectedExpertise.filter((exp) => exp !== expertise));
+  };
+
+  // Handle Enter key press in expertise input
+  const handleExpertiseKeyPress = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addExpertise();
+    }
   };
 
   // New function to handle form data collection (no account creation yet)
@@ -363,6 +346,10 @@ export default function RegisterExpert() {
         "from path:",
         location.pathname
       );
+
+      // Debug: Log expertise data
+      console.log("Selected expertise before saving:", selectedExpertise);
+      console.log("Expertise array length:", selectedExpertise.length);
 
       // Step 1: Create the user account in auth.users
       const { data: userData, error: authError } = await supabase.auth.signUp({
@@ -404,6 +391,13 @@ export default function RegisterExpert() {
         userData.user.user_metadata
       );
 
+      // Convert expertise array to JSON string for storage in specialization field (same as profile update)
+      const specialization = JSON.stringify(selectedExpertise);
+      console.log(
+        "Converted expertise to JSON for specialization field:",
+        specialization
+      );
+
       // Step 2: Create profile record with all user details
       const userId = userData.user.id;
       const profileData = {
@@ -413,7 +407,6 @@ export default function RegisterExpert() {
         avatar_url: uploadedAvatarUrl, // Use the pre-uploaded avatar URL
         website: formData.website,
         user_role: role, // Explicitly set the correct role
-        specialization: formData.specialization,
         title: formData.title,
         experience_years: Number(formData.experience_years) || 0,
         phone_number: formData.phone_number,
@@ -429,11 +422,16 @@ export default function RegisterExpert() {
         session_duration: formData.session_duration
           ? Number(formData.session_duration)
           : null,
-        expertise_area: selectedExpertise,
+        specialization: specialization, // Save expertise as JSON string in specialization field
         status: "active",
       };
 
+      // Debug: Log the complete profile data
       console.log("Creating profile with data:", profileData);
+      console.log(
+        "Profile data specialization (expertise):",
+        profileData.specialization
+      );
 
       // Insert the profile data
       const { error: profileError } = await supabase
@@ -445,11 +443,17 @@ export default function RegisterExpert() {
 
       if (profileError) {
         console.error("Error creating profile:", profileError);
+        console.error("Profile error details:", profileError.details);
+        console.error("Profile error hint:", profileError.hint);
         toast.error(
           "Account created but profile details could not be saved. Please contact support."
         );
       } else {
         console.log("Profile created successfully");
+        console.log(
+          "Expertise saved successfully in specialization field:",
+          specialization
+        );
         toast.success("Account creation successful, please login.");
         navigate("/login");
       }
@@ -679,37 +683,6 @@ export default function RegisterExpert() {
 
                 <motion.div variants={itemVariants} className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Award className="h-4 w-4 text-muted-foreground" />
-                    <Label htmlFor="specialization">Specialization</Label>
-                  </div>
-                  <Input
-                    id="specialization"
-                    type="text"
-                    placeholder={
-                      isValidExpertType
-                        ? validExpertType === "financial_expert"
-                          ? "Financial Planning"
-                          : validExpertType === "relationship_expert"
-                          ? "Couples Therapy"
-                          : validExpertType === "dating_coach"
-                          ? "Online Dating"
-                          : validExpertType === "health_wellness_coach"
-                          ? "Nutrition & Fitness"
-                          : "Cognitive Behavioral Therapy"
-                        : "Your Specialization"
-                    }
-                    {...form.register("specialization")}
-                    className="bg-transparent"
-                  />
-                  {form.formState.errors.specialization && (
-                    <p className="text-sm text-destructive">
-                      {form.formState.errors.specialization.message}
-                    </p>
-                  )}
-                </motion.div>
-
-                <motion.div variants={itemVariants} className="space-y-2">
-                  <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <Label htmlFor="experience_years">
                       Years of Experience
@@ -731,62 +704,88 @@ export default function RegisterExpert() {
 
                 <motion.div variants={itemVariants} className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-muted-foreground" />
+                    <Award className="h-4 w-4 text-muted-foreground" />
                     <Label htmlFor="expertise">Areas of Expertise</Label>
                   </div>
-                  <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <Input
+                        id="expertise"
+                        type="text"
+                        placeholder={
+                          isValidExpertType
+                            ? validExpertType === "financial_expert"
+                              ? "Enter expertise (e.g., Budget Planning, Investment Planning, Debt Management)"
+                              : validExpertType === "relationship_expert"
+                              ? "Enter expertise (e.g., Couples Therapy, Family Counseling, Conflict Resolution)"
+                              : validExpertType === "dating_coach"
+                              ? "Enter expertise (e.g., Confidence Building, Online Dating, Communication Skills)"
+                              : validExpertType === "health_wellness_coach"
+                              ? "Enter expertise (e.g., Nutrition Planning, Fitness Coaching, Stress Management)"
+                              : "Enter expertise (e.g., Anxiety, Depression, PTSD)"
+                            : "Enter an area of expertise"
+                        }
+                        value={expertiseInput}
+                        onChange={(e) => setExpertiseInput(e.target.value)}
+                        onKeyPress={handleExpertiseKeyPress}
+                        className="bg-transparent flex-1"
+                      />
                       <Button
+                        type="button"
                         variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-full justify-between bg-transparent"
+                        size="sm"
+                        onClick={addExpertise}
+                        disabled={!expertiseInput.trim()}
+                        className="shrink-0"
                       >
-                        {selectedExpertise.length > 0
-                          ? `${selectedExpertise.length} areas selected`
-                          : "Select areas of expertise..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        <Plus className="h-4 w-4" />
                       </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Search expertise..." />
-                        <CommandEmpty>No expertise found.</CommandEmpty>
-                        <CommandList>
-                          <CommandGroup>
-                            {currentExpertiseOptions.map((option) => (
-                              <CommandItem
-                                key={option.value}
-                                onSelect={() => {
-                                  const newExpertise =
-                                    selectedExpertise.includes(option.value)
-                                      ? selectedExpertise.filter(
-                                          (i) => i !== option.value
-                                        )
-                                      : [...selectedExpertise, option.value];
-                                  setSelectedExpertise(newExpertise);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedExpertise.includes(option.value)
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {option.label}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <p className="text-xs text-muted-foreground">
-                    Select all areas that you have experience with. This helps
-                    clients find the right match.
-                  </p>
+                    </div>
+
+                    {selectedExpertise.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedExpertise.map((expertise, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center gap-1 pr-1"
+                          >
+                            {expertise}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                              onClick={() => removeExpertise(expertise)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+
+                    {selectedExpertise.length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Add at least one area of expertise.
+                        {isValidExpertType &&
+                          validExpertType === "financial_expert" &&
+                          " Examples: Budget Planning, Investment Planning, Debt Management, Retirement Planning, etc."}
+                        {isValidExpertType &&
+                          validExpertType === "relationship_expert" &&
+                          " Examples: Couples Therapy, Family Counseling, Conflict Resolution, Communication Skills, etc."}
+                        {isValidExpertType &&
+                          validExpertType === "dating_coach" &&
+                          " Examples: Confidence Building, Online Dating, Communication Skills, Post-Divorce Support, etc."}
+                        {isValidExpertType &&
+                          validExpertType === "health_wellness_coach" &&
+                          " Examples: Nutrition Planning, Fitness Coaching, Stress Management, Sleep Hygiene, etc."}
+                        {(!isValidExpertType ||
+                          validExpertType === "therapist") &&
+                          " Examples: Anxiety, Depression, PTSD, Relationship Issues, Trauma, Addiction, etc."}
+                      </p>
+                    )}
+                  </div>
                 </motion.div>
               </motion.div>
             )}
