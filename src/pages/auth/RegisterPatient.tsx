@@ -158,10 +158,37 @@ export default function RegisterPatient() {
     const validFields = fields.filter((field) => field !== "profile_picture");
 
     const isValid = await form.trigger(validFields as any);
-    if (isValid) {
-      setCurrentStep((prev) => Math.min(prev + 1, formSteps.length - 1));
-      window.scrollTo(0, 0);
+
+    if (!isValid) {
+      // Get current step info for specific error messages
+      const currentStepTitle = formSteps[currentStep].title;
+      const errors = form.formState.errors;
+
+      // Show specific error messages based on current step
+      let errorMessage = `Please fill in all required fields in ${currentStepTitle}`;
+
+      if (currentStep === 0) {
+        // Step 1: Basic Information
+        if (errors.full_name) errorMessage = "Please enter your full name";
+        else if (errors.email)
+          errorMessage = "Please enter a valid email address";
+        else if (errors.password)
+          errorMessage = "Please enter a password with at least 6 characters";
+        else if (errors.username)
+          errorMessage = "Username must be at least 3 characters";
+      } else if (currentStep === 1) {
+        // Step 2: Contact Information
+        if (errors.phone_number)
+          errorMessage =
+            "Please enter a valid phone number with at least 10 digits";
+      }
+
+      toast.error(errorMessage);
+      return;
     }
+
+    setCurrentStep((prev) => Math.min(prev + 1, formSteps.length - 1));
+    window.scrollTo(0, 0);
   };
 
   const prevStep = () => {

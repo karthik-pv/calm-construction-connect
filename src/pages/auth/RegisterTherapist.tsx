@@ -81,12 +81,18 @@ const formSchema = z.object({
   education: z.string().optional(),
   certifications: z.string().optional(),
   languages: z.string().optional(),
-  appointment_fee: z.string().optional(),
-  session_duration: z.string().optional(),
+  appointment_fee: z
+    .string()
+    .min(1, { message: "Appointment fee is required" }),
+  session_duration: z
+    .string()
+    .min(1, { message: "Session duration is required" }),
   phone_number: z.string().min(10, {
     message: "Phone number is required and must be at least 10 digits",
   }),
-  company_name: z.string().optional(),
+  company_name: z
+    .string()
+    .min(1, { message: "Practice or company name is required" }),
   website: z
     .string()
     .url({ message: "Please enter a valid URL" })
@@ -228,10 +234,52 @@ export default function RegisterTherapist() {
       return;
     }
 
-    if (isValid) {
-      setCurrentStep((prev) => Math.min(prev + 1, formSteps.length - 1));
-      window.scrollTo(0, 0);
+    if (!isValid) {
+      // Get current step info for specific error messages
+      const currentStepTitle = formSteps[currentStep].title;
+      const errors = form.formState.errors;
+
+      // Show specific error messages based on current step
+      let errorMessage = `Please fill in all required fields in ${currentStepTitle}`;
+
+      if (currentStep === 0) {
+        // Step 1: Account Details
+        if (errors.full_name) errorMessage = "Please enter your full name";
+        else if (errors.email)
+          errorMessage = "Please enter a valid email address";
+        else if (errors.password)
+          errorMessage = "Please enter a password with at least 6 characters";
+        else if (errors.username)
+          errorMessage = "Username must be at least 3 characters";
+      } else if (currentStep === 1) {
+        // Step 2: Professional Information
+        if (errors.experience_years)
+          errorMessage = "Please enter your years of experience";
+      } else if (currentStep === 2) {
+        // Step 3: About You
+        if (errors.bio)
+          errorMessage = "Please enter a bio with at least 10 characters";
+      } else if (currentStep === 3) {
+        // Step 4: Practice Details
+        if (errors.appointment_fee)
+          errorMessage = "Please enter your appointment fee";
+        else if (errors.session_duration)
+          errorMessage = "Please enter your session duration";
+        else if (errors.phone_number)
+          errorMessage =
+            "Please enter a valid phone number with at least 10 digits";
+        else if (errors.company_name)
+          errorMessage = "Please enter your practice or company name";
+        else if (errors.website)
+          errorMessage = "Please enter a valid website URL";
+      }
+
+      toast.error(errorMessage);
+      return;
     }
+
+    setCurrentStep((prev) => Math.min(prev + 1, formSteps.length - 1));
+    window.scrollTo(0, 0);
   };
 
   const prevStep = () => {
@@ -773,7 +821,7 @@ export default function RegisterTherapist() {
                 <motion.div variants={itemVariants} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Award className="h-4 w-4 text-muted-foreground" />
-                    <Label htmlFor="appointment_fee">Appointment Fee</Label>
+                    <Label htmlFor="appointment_fee">Appointment Fee *</Label>
                   </div>
                   <Input
                     id="appointment_fee"
@@ -782,12 +830,17 @@ export default function RegisterTherapist() {
                     {...form.register("appointment_fee")}
                     className="bg-transparent"
                   />
+                  {form.formState.errors.appointment_fee && (
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.appointment_fee.message}
+                    </p>
+                  )}
                 </motion.div>
 
                 <motion.div variants={itemVariants} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    <Label htmlFor="session_duration">Session Duration</Label>
+                    <Label htmlFor="session_duration">Session Duration *</Label>
                   </div>
                   <Input
                     id="session_duration"
@@ -796,6 +849,11 @@ export default function RegisterTherapist() {
                     {...form.register("session_duration")}
                     className="bg-transparent"
                   />
+                  {form.formState.errors.session_duration && (
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.session_duration.message}
+                    </p>
+                  )}
                 </motion.div>
 
                 <motion.div variants={itemVariants} className="space-y-2">
@@ -816,7 +874,7 @@ export default function RegisterTherapist() {
                   <div className="flex items-center gap-2">
                     <Briefcase className="h-4 w-4 text-muted-foreground" />
                     <Label htmlFor="company_name">
-                      Practice or Company Name
+                      Practice or Company Name *
                     </Label>
                   </div>
                   <Input
@@ -826,6 +884,11 @@ export default function RegisterTherapist() {
                     {...form.register("company_name")}
                     className="bg-transparent"
                   />
+                  {form.formState.errors.company_name && (
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.company_name.message}
+                    </p>
+                  )}
                 </motion.div>
 
                 <motion.div variants={itemVariants} className="space-y-2">
