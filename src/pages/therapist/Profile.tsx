@@ -106,7 +106,6 @@ export default function TherapistProfile() {
   });
 
   const [passwordData, setPasswordData] = useState({
-    current: "",
     new: "",
     confirm: "",
   });
@@ -308,14 +307,18 @@ export default function TherapistProfile() {
       return;
     }
 
+    if (passwordData.new.length < 8) {
+      toast.error("Password must be at least 8 characters long");
+      return;
+    }
+
     setPasswordSubmitting(true);
 
     try {
-      await updatePassword(passwordData.current, passwordData.new);
+      await updatePassword(passwordData.new);
 
       // Reset form
       setPasswordData({
-        current: "",
         new: "",
         confirm: "",
       });
@@ -958,31 +961,6 @@ export default function TherapistProfile() {
                     className="space-y-4 max-w-md"
                   >
                     <div className="space-y-2">
-                      <Label htmlFor="current-password">Current Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="current-password"
-                          name="current"
-                          type={showPassword ? "text" : "password"}
-                          value={passwordData.current}
-                          onChange={handlePasswordChange}
-                          placeholder="Enter your current password"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
                       <Label htmlFor="new-password">New Password</Label>
                       <div className="relative">
                         <Input
@@ -1017,7 +995,6 @@ export default function TherapistProfile() {
                       className="w-full"
                       disabled={
                         passwordSubmitting ||
-                        !passwordData.current ||
                         !passwordData.new ||
                         !passwordData.confirm
                       }

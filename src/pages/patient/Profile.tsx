@@ -49,7 +49,6 @@ export default function PatientProfile() {
   });
 
   const [passwordData, setPasswordData] = useState({
-    current: "",
     new: "",
     confirm: "",
   });
@@ -114,14 +113,18 @@ export default function PatientProfile() {
       return;
     }
 
+    if (passwordData.new.length < 8) {
+      toast.error("Password must be at least 8 characters long");
+      return;
+    }
+
     setPasswordSubmitting(true);
 
     try {
-      await updatePassword(passwordData.current, passwordData.new);
+      await updatePassword(passwordData.new);
 
       // Reset form
       setPasswordData({
-        current: "",
         new: "",
         confirm: "",
       });
@@ -330,34 +333,6 @@ export default function PatientProfile() {
                   <form onSubmit={handlePasswordSubmit} className="space-y-4">
                     <div className="space-y-4 max-w-md">
                       <div className="space-y-2">
-                        <Label htmlFor="current-password">
-                          Current Password
-                        </Label>
-                        <div className="relative">
-                          <Input
-                            id="current-password"
-                            name="current"
-                            type={showPassword ? "text" : "password"}
-                            value={passwordData.current}
-                            onChange={handlePasswordChange}
-                            placeholder="Enter your current password"
-                            className="glass-input"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                          >
-                            {showPassword ? (
-                              <span>Hide</span>
-                            ) : (
-                              <span>Show</span>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
                         <Label htmlFor="new-password">New Password</Label>
                         <div className="relative">
                           <Input
@@ -394,7 +369,6 @@ export default function PatientProfile() {
                         className="w-full glass-button"
                         disabled={
                           passwordSubmitting ||
-                          !passwordData.current ||
                           !passwordData.new ||
                           !passwordData.confirm
                         }
