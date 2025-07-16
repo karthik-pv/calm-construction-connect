@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { sendCancellationEmail } from "@/lib/emailService";
 
 export interface Appointment {
   id: string;
@@ -223,7 +224,7 @@ export function useUpdateAppointmentStatus() {
       // Find the specific appointment to get its details
       const { data: appointmentData, error: appointmentError } = await supabase
         .from("appointments")
-        .select("*")
+        .select("*, patient:patient_id(email)")
         .eq("id", appointmentId)
         .single();
 
@@ -246,52 +247,72 @@ export function useUpdateAppointmentStatus() {
         `Attempting to update appointment ${appointmentId} status to ${status}`
       );
 
+      // We need to store the result of the update to use after the conditional logic.
+      let updateResult: { data: any; error: any | null } = {
+        data: null,
+        error: null,
+      };
+
       // For cancellation, try both spellings if needed
       let targetStatus = status;
       if (status === "canceled") {
-        // Try British English spelling first
-        targetStatus = "cancelled";
+        targetStatus = "cancelled"; // Try British English spelling first
       }
 
-      // Update the appointment status
-      const { data, error } = await supabase
+      // First update attempt
+      updateResult = await supabase
         .from("appointments")
         .update({ status: targetStatus, updated_at: new Date().toISOString() })
         .eq("id", appointmentId)
         .select()
         .single();
 
-      // If British spelling fails, try American spelling
+      // If the first attempt fails with a constraint violation, try the other spelling
       if (
-        error &&
-        error.message.includes("violates check constraint") &&
+        updateResult.error &&
+        updateResult.error.message.includes("violates check constraint") &&
         status === "canceled"
       ) {
-        console.log(
-          "First attempt failed with 'cancelled', trying 'canceled' spelling"
-        );
-        const secondAttempt = await supabase
+        console.log("First attempt failed, trying 'canceled' spelling");
+        updateResult = await supabase
           .from("appointments")
           .update({
-            status: "canceled", // American English spelling
+            status: "canceled",
             updated_at: new Date().toISOString(),
           })
           .eq("id", appointmentId)
           .select()
           .single();
-
-        if (secondAttempt.error) {
-          console.error("Second attempt also failed:", secondAttempt.error);
-          throw new Error(secondAttempt.error.message);
-        }
-
-        console.log("Successfully updated appointment with second attempt");
-        return secondAttempt.data;
       }
 
-      if (error) {
-        console.error("Error updating appointment:", error);
-        throw new Error(error.message);
+      // After all attempts, check for a final error
+      if (updateResult.error) {
+        console.error("Error updating appointment:", updateResult.error);
+        throw new Error(updateResult.error.message);
+      }
+
+      console.log("Successfully updated appointment status in database.");
+
+      // If the update was a cancellation, send the email
+      if (status === "canceled" || status === "cancelled") {
+        console.log("--- Status is cancellation, preparing email. ---");
+        const patientEmail = (appointmentData?.patient as any)?.email;
+        const therapistName = therapistData?.full_name;
+        const appointmentTime = appointmentData?.start_time
+          ? new Date(appointmentData.start_time).toLocaleString()
+          : "an upcoming";
+
+        if (patientEmail && therapistName) {
+          await sendCancellationEmail(
+            patientEmail,
+            therapistName,
+            appointmentTime
+          );
+        } else {
+          console.error(
+            "Could not send cancellation email: missing patient email or therapist name."
+          );
+        }
       }
 
       // Get appointment details for logging
@@ -311,7 +332,7 @@ export function useUpdateAppointmentStatus() {
         `Changed appointment "${appointmentTitle}" status to ${status} on ${formattedDate} at ${formattedTime}`
       );
 
-      return data;
+      return updateResult.data;
     },
     onSuccess: (_, variables) => {
       const messageMap: Record<string, string> = {

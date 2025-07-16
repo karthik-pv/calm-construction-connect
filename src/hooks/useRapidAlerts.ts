@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { sendBulkRapidAlertEmails } from "@/lib/emailService";
 
 export interface RapidAlert {
   id: string;
@@ -21,18 +22,43 @@ export interface RapidAlert {
 export interface Therapist {
   id: string;
   full_name: string;
+  email: string;
   avatar_url?: string;
   user_role: string;
 }
 
 // Hook for patients to create rapid alerts
 export function useCreateRapidAlert() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async () => {
-      if (!user?.id) throw new Error("User not authenticated");
+      if (!user?.id || !profile?.full_name)
+        throw new Error("User not authenticated or profile not loaded");
+
+      // Check for recent rapid alerts from this user
+      const sixHoursAgo = new Date(
+        Date.now() - 6 * 60 * 60 * 1000
+      ).toISOString();
+      const { data: recentAlerts, error: recentAlertsError } = await supabase
+        .from("rapid_alerts")
+        .select("id, created_at")
+        .eq("patient_id", user.id)
+        .gte("created_at", sixHoursAgo)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (recentAlertsError) {
+        console.error("Error checking for recent alerts:", recentAlertsError);
+        throw new Error(
+          "Could not verify your alert status. Please try again."
+        );
+      }
+
+      if (recentAlerts && recentAlerts.length > 0) {
+        throw new Error("You can only raise one rapid alert every 6 hours.");
+      }
 
       const { data, error } = await supabase
         .from("rapid_alerts")
@@ -47,6 +73,26 @@ export function useCreateRapidAlert() {
       if (error) {
         console.error("Error creating rapid alert:", error);
         throw new Error(error.message);
+      }
+
+      // Fetch all therapists to send them an email
+      const { data: therapists, error: therapistsError } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, avatar_url, user_role")
+        .in("user_role", [
+          "therapist",
+          "relationship_expert",
+          "financial_expert",
+          "dating_coach",
+          "health_wellness_coach",
+        ]);
+
+      if (therapistsError) {
+        console.error("Error fetching therapists:", therapistsError);
+        // Don't block the alert if email fails
+      } else if (therapists && therapists.length > 0) {
+        const therapistEmails = therapists.map((t) => t.email);
+        sendBulkRapidAlertEmails(therapistEmails, profile.full_name);
       }
 
       return data;
@@ -68,7 +114,7 @@ export function useTherapistsList() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url, user_role")
+        .select("id, full_name, email, avatar_url, user_role")
         .in("user_role", [
           "therapist",
           "relationship_expert",
