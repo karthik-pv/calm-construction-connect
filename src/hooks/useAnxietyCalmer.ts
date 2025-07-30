@@ -1,9 +1,9 @@
-import { useMutation } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabaseClient';
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabaseClient";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
-export type SessionType = 'breathing' | 'meditation' | 'grounding' | string; // Allow other types
+export type SessionType = "breathing" | "meditation" | "grounding" | string; // Allow other types
 
 export interface AnxietySessionStartData {
   session_type: SessionType;
@@ -17,16 +17,34 @@ export interface AnxietySession extends AnxietySessionStartData {
   completed_at?: string;
 }
 
+export interface AnxietyCalmerMedia {
+  id: string;
+  name: string;
+  description: string | null;
+  media_url: string;
+  media_type: "audio" | "video";
+  duration: number | null;
+  thumbnail_url: string | null;
+  created_at: string;
+  updated_at: string;
+  is_active: boolean;
+}
+
 // --- Start Session ---
-const startSession = async (userId: string, sessionData: AnxietySessionStartData): Promise<AnxietySession> => {
+const startSession = async (
+  userId: string,
+  sessionData: AnxietySessionStartData
+): Promise<AnxietySession> => {
   const { data, error } = await supabase
-    .from('anxiety_calmer_sessions')
-    .insert([{ 
-      user_id: userId,
-      session_type: sessionData.session_type,
-      duration_seconds: sessionData.duration_seconds,
-      // started_at is default now()
-    }])
+    .from("anxiety_calmer_sessions")
+    .insert([
+      {
+        user_id: userId,
+        session_type: sessionData.session_type,
+        duration_seconds: sessionData.duration_seconds,
+        // started_at is default now()
+      },
+    ])
     .select()
     .single(); // Return the created session
 
@@ -43,7 +61,9 @@ export function useStartAnxietySession() {
   // No query invalidation needed usually, unless showing session history
 
   return useMutation({
-    mutationFn: async (sessionData: AnxietySessionStartData): Promise<AnxietySession> => {
+    mutationFn: async (
+      sessionData: AnxietySessionStartData
+    ): Promise<AnxietySession> => {
       if (!user?.id) throw new Error("User not authenticated");
       return startSession(user.id, sessionData);
     },
@@ -56,12 +76,12 @@ export function useStartAnxietySession() {
 
 // --- Complete Session ---
 const completeSession = async (sessionId: number, userId: string) => {
-    // Ensure user can only complete their own sessions (handled by RLS too)
+  // Ensure user can only complete their own sessions (handled by RLS too)
   const { data, error } = await supabase
-    .from('anxiety_calmer_sessions')
+    .from("anxiety_calmer_sessions")
     .update({ completed_at: new Date().toISOString() })
-    .eq('id', sessionId)
-    .eq('user_id', userId) // Ensure ownership
+    .eq("id", sessionId)
+    .eq("user_id", userId) // Ensure ownership
     .select()
     .single();
 
@@ -79,12 +99,32 @@ export function useCompleteAnxietySession() {
 
   return useMutation({
     mutationFn: async (sessionId: number) => {
-       if (!user?.id) throw new Error("User not authenticated");
-       return completeSession(sessionId, user.id);
+      if (!user?.id) throw new Error("User not authenticated");
+      return completeSession(sessionId, user.id);
     },
     onError: (error) => {
       console.error("Mutation error completing session:", error);
       // Toast handled in completeSession
     },
   });
-} 
+}
+
+export function useAnxietyCalmer() {
+  return useQuery<AnxietyCalmerMedia[]>({
+    queryKey: ["anxietyCalmer"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("anxiety_calmer")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching anxiety calmer data:", error);
+        throw new Error(error.message);
+      }
+
+      return data || [];
+    },
+  });
+}
