@@ -95,8 +95,31 @@ export function MediaPlayer({ media, isOpen, onClose }: MediaPlayerProps) {
       } else {
         // Check if media is ready to play
         if (mediaRef.current.readyState >= 2) {
-          await mediaRef.current.play();
-          setIsPlaying(true);
+          // iOS-specific handling
+          const playPromise = mediaRef.current.play();
+
+          if (playPromise !== undefined) {
+            try {
+              await playPromise;
+              setIsPlaying(true);
+            } catch (playError) {
+              console.error("Play failed:", playError);
+              // For iOS, try setting muted first then unmuting
+              if (mediaRef.current) {
+                mediaRef.current.muted = true;
+                try {
+                  await mediaRef.current.play();
+                  mediaRef.current.muted = false;
+                  setIsPlaying(true);
+                } catch (mutedPlayError) {
+                  console.error("Muted play also failed:", mutedPlayError);
+                  setError(
+                    "Media not ready to play. Please wait for it to load."
+                  );
+                }
+              }
+            }
+          }
         } else {
           setError("Media not ready to play. Please wait for it to load.");
         }
@@ -189,6 +212,11 @@ export function MediaPlayer({ media, isOpen, onClose }: MediaPlayerProps) {
                   onPause={() => setIsPlaying(false)}
                   controls={false}
                   preload="metadata"
+                  playsInline
+                  webkit-playsinline="true"
+                  x-webkit-airplay="allow"
+                  muted={false}
+                  crossOrigin="anonymous"
                 />
                 {isLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
@@ -223,6 +251,10 @@ export function MediaPlayer({ media, isOpen, onClose }: MediaPlayerProps) {
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}
                   preload="metadata"
+                  playsInline
+                  webkit-playsinline="true"
+                  muted={false}
+                  crossOrigin="anonymous"
                 />
               </div>
             )}
