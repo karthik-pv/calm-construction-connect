@@ -67,6 +67,39 @@ type Restaurant = {
   discount_coupons: any | null; // Expecting array of { code, description?, percent?, expires_at? }
 };
 
+// Persist last suggestions for contextual coupon requests
+const SUGGESTIONS_STORAGE_KEY = 'ac_last_restaurant_suggestions';
+
+function getBestStorage(): Storage | null {
+  try { if (typeof window !== 'undefined' && window.localStorage) return window.localStorage; } catch {}
+  try { if (typeof window !== 'undefined' && window.sessionStorage) return window.sessionStorage; } catch {}
+  return null;
+}
+
+function saveLastSuggestions(restaurants: Restaurant[]) {
+  const store = getBestStorage();
+  if (!store) return;
+  try {
+    // Store minimal fields needed
+    const minimal = restaurants.map(r => ({ id: r.id, name: r.name, discount_coupons: r.discount_coupons }));
+    store.setItem(SUGGESTIONS_STORAGE_KEY, JSON.stringify(minimal));
+  } catch {}
+}
+
+function loadLastSuggestions(): Array<{ id: string; name: string; discount_coupons: any | null }> {
+  const store = getBestStorage();
+  if (!store) return [];
+  try {
+    const raw = store.getItem(SUGGESTIONS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((x) => x && typeof x.id === 'string' && typeof x.name === 'string');
+  } catch {
+    return [];
+  }
+}
+
 const RESTAURANT_INTENT_PATTERNS = [
   /\brestaurants?\b/i,
   /\b(place|places) to eat\b/i,
@@ -134,7 +167,7 @@ function formatRestaurantSuggestions(restaurants: Restaurant[]): string {
     '',
     ...items,
     '',
-    "Want a deal? Say: coupon for [restaurant name] and I’ll hook you up."
+    "Want a deal? Just say: ‘give me a coupon’ and I’ll apply it to a top pick."
   ].join('\n');
 }
 
@@ -173,7 +206,7 @@ function extractRequestedRestaurantName(message: string): string | null {
   // Try to capture patterns like "coupon for X", "discount for X", etc.
   const m = message.match(/(?:coupon|discount|voucher|promo|code)\s+(?:for|at|from)\s+(.+)/i);
   if (m && m[1]) return m[1].trim();
-  // Otherwise return the entire message as a fallback fragment to search
+  // Otherwise return null so we can fall back to last suggestions
   return null;
 }
 
@@ -217,8 +250,26 @@ export function useSendChatbotMessage() {
           restaurant = candidates.find(r => lower.includes(r.name.toLowerCase())) || null;
         }
 
+        // If still unknown, fall back to last suggestions stored locally
         if (!restaurant) {
-          const prompt = "Sure — which restaurant did you have in mind? Say: coupon for [name].";
+          const recent = loadLastSuggestions();
+          // Prefer the first with a coupon; else just take the first
+          const preferred = recent.find(r => !!pickCoupon(r.discount_coupons)) || recent[0] || null;
+          if (preferred) {
+            // We might need full fields, but for coupon reveal we only need name and coupons
+            const coupon = pickCoupon(preferred.discount_coupons);
+            if (coupon) {
+              const reveal = formatCouponReveal(preferred.name, coupon);
+              return sendChatbotMessage(profile.id, message, reveal);
+            } else {
+              const noCouponMsg = `I couldn't find an active coupon for ${preferred.name} right now. Want me to suggest a few places with deals?`;
+              return sendChatbotMessage(profile.id, message, noCouponMsg);
+            }
+          }
+        }
+
+        if (!restaurant) {
+          const prompt = "Sure — which restaurant did you have in mind? You can also say: ‘give me a coupon’ after I suggest places.";
           return sendChatbotMessage(profile.id, message, prompt);
         }
 
@@ -236,6 +287,8 @@ export function useSendChatbotMessage() {
       if (hasRestaurantIntent(lower)) {
         try {
           const restaurants = await fetchTopRestaurants(3);
+          // Save to local suggestions for later coupon intent
+          saveLastSuggestions(restaurants);
           const response = formatRestaurantSuggestions(restaurants);
           return sendChatbotMessage(profile.id, message, response);
         } catch (e) {

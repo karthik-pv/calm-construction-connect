@@ -34,6 +34,7 @@ import PatientAnxietyCalmer from "./pages/patient/AnxietyCalmer";
 import PatientExperts from "./pages/patient/Experts";
 import PatientAppointments from "./pages/patient/Appointments";
 import BookAppointment from "./pages/patient/BookAppointment";
+import Deals from "./pages/patient/Deals";
 
 // Expert Pages (formerly Therapist Pages)
 import TherapistDashboard from "./pages/therapist/Dashboard";
@@ -251,6 +252,7 @@ const AppRoutes = () => {
           path="/patient/book-appointment/:therapistId"
           element={<BookAppointment />}
         />
+        <Route path="/patient/deals" element={<Deals />} />
       </Route>
 
       {/* Expert Routes - Protected (for all expert types) */}

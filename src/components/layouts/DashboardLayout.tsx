@@ -19,6 +19,7 @@ import {
   Moon,
   Sun,
   Clock,
+  Gift,
 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -55,6 +56,7 @@ const getNavItems = (role: UserRole): NavItem[] => {
         href: "/patient/anxiety-calmer",
         icon: Calendar,
       },
+      { label: "Deals & Offers", href: "/patient/deals", icon: Gift },
       { label: "Profile", href: "/patient/profile", icon: User },
     ];
   } else {
