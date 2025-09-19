@@ -56,7 +56,7 @@ const getNavItems = (role: UserRole): NavItem[] => {
         href: "/patient/anxiety-calmer",
         icon: Calendar,
       },
-      { label: "Deals & Offers", href: "/patient/deals", icon: Gift },
+      { label: "Exclusive Deals", href: "/patient/deals", icon: Gift },
       { label: "Profile", href: "/patient/profile", icon: User },
     ];
   } else {
