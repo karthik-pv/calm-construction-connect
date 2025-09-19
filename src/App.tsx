@@ -34,6 +34,7 @@ import PatientAnxietyCalmer from "./pages/patient/AnxietyCalmer";
 import PatientExperts from "./pages/patient/Experts";
 import PatientAppointments from "./pages/patient/Appointments";
 import BookAppointment from "./pages/patient/BookAppointment";
+import Deals from "./pages/patient/Deals";
 
 // Expert Pages (formerly Therapist Pages)
 import TherapistDashboard from "./pages/therapist/Dashboard";
@@ -47,6 +48,11 @@ import TherapistPatientProfile from "./pages/therapist/PatientProfile";
 
 // // Admin Pages
 // import ManageTherapists from "./pages/admin/ManageTherapists";
+
+// Legal Pages
+import TermsAndConditions from "./pages/legal/TermsAndConditions";
+import CookiesPolicy from "./pages/legal/CookiesPolicy";
+import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
 
 // Other Pages
 import NotFound from "./pages/NotFound";
@@ -246,6 +252,7 @@ const AppRoutes = () => {
           path="/patient/book-appointment/:therapistId"
           element={<BookAppointment />}
         />
+        <Route path="/patient/deals" element={<Deals />} />
       </Route>
 
       {/* Expert Routes - Protected (for all expert types) */}
@@ -298,6 +305,11 @@ const AppRoutes = () => {
       >
         {/* <Route path="/admin/therapists" element={<ManageTherapists />} /> */}
       </Route>
+
+      {/* Legal Pages - Public Access */}
+      <Route path="/terms" element={<TermsAndConditions />} />
+      <Route path="/cookies-policy" element={<CookiesPolicy />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
       {/* 404 Route */}
       <Route path="*" element={<NotFound />} />

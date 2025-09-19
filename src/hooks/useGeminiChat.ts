@@ -24,6 +24,66 @@ also remember since this is like a chat conversation keep your responses short a
 IMPORTANT: If a user sends a message in a particular language, you MUST respond in the same language.
 `;
 
+// Local context retention: keep the last 10 user messages (queue)
+const STORAGE_KEY = 'ac_chat_user_history';
+const MAX_HISTORY = 10;
+
+function getBestStorage(): Storage | null {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) return window.localStorage;
+  } catch {}
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) return window.sessionStorage;
+  } catch {}
+  return null;
+}
+
+function loadUserHistory(): string[] {
+  const store = getBestStorage();
+  if (!store) return [];
+  try {
+    const raw = store.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((m) => typeof m === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveUserHistory(history: string[]) {
+  const store = getBestStorage();
+  if (!store) return;
+  try {
+    store.setItem(STORAGE_KEY, JSON.stringify(history.slice(-MAX_HISTORY)));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function appendUserMessageToHistory(message: string) {
+  const history = loadUserHistory();
+  history.push(message);
+  if (history.length > MAX_HISTORY) {
+    // drop oldest entries to keep size <= MAX_HISTORY
+    const trimmed = history.slice(history.length - MAX_HISTORY);
+    saveUserHistory(trimmed);
+  } else {
+    saveUserHistory(history);
+  }
+}
+
+function buildContextBlock(): string {
+  const history = loadUserHistory();
+  if (history.length === 0) return '';
+  // Present oldest to newest for readability
+  const lines = history.map((msg, idx) => `${idx + 1}. ${msg}`);
+  return [
+    'Recent user context (last 10 messages, oldest to newest):',
+    ...lines,
+  ].join('\n');
+}
+
 // Define the API key and model name
 const API_KEY = "AIzaSyD-4HZiBslNKdFP50NJGl6YQgeae3jOPFU";
 const MODEL_NAME = "gemini-1.5-flash";
@@ -73,23 +133,29 @@ export function useGeminiChat() {
     setError(null);
     
     try {
+      // Maintain local context queue (store user message for future requests)
+      appendUserMessageToHistory(message);
+
+      // Build context block from the last 10 user messages
+      const contextBlock = buildContextBlock();
+
       // Detect the language of the message
       const detectedLanguage = detectLanguage(message);
       
-      // Prepare the message with language instruction
-      const contextualizedMessage = `The user just sent a message in ${detectedLanguage}. 
-        The message is: "${message}"
-        
-        You MUST respond in ${detectedLanguage} language.`;
+      // Prepare the message with language instruction and recent context
+      const contextualizedMessage = `The user just sent a message in ${detectedLanguage}.\nThe message is: "${message}"\n\nUse the recent context to keep continuity if relevant.`;
       
       // Prepare the request body
+      const parts: Array<{ text: string }> = [{ text: PRE_INFO }];
+      if (contextBlock) {
+        parts.push({ text: contextBlock });
+      }
+      parts.push({ text: contextualizedMessage });
+
       const requestBody = {
         contents: [
           {
-            parts: [
-              { text: PRE_INFO },
-              { text: contextualizedMessage }
-            ]
+            parts
           }
         ],
         generationConfig: {
