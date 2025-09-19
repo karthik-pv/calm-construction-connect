@@ -53,7 +53,7 @@ export default function Deals() {
   return (
     <DashboardLayout>
       <div className="p-6">
-        <PageTitle title="Deals & Offers" subtitle="Discover places with exclusive savings" />
+        <PageTitle title="Unlock Exclusive Partner Deals" subtitle="Generate your coupons now" />
 
         {loading && (
           <div className="mt-6 glass-card rounded-xl p-6">
